@@ -371,12 +371,12 @@ app.post("/scrape", async (req, res) => {
       console.log("⚠️ Sıralama yapılamadı, tüm yorumlar çekilecek");
     }
 
-    // 8. SCROLL - YORUM SAYISI BAZLI (Bellek için max scroll azalt, delay optimize)
+    // 8. SCROLL - YORUM SAYISI BAZLI (Daha sert: max scroll artır, delay artır, same limit artır)
     console.log("📜 Scroll başlatılıyor...");
     let lastReviewCount = 0;
     let sameCountStreak = 0;
-    const SAME_LIMIT = 10; // Daha yüksek limit
-    const MAX_SCROLL = 300; // Azaltıldı
+    const SAME_LIMIT = 15; // Daha yüksek limit
+    const MAX_SCROLL = 500; // Artırıldı
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { reviews } = await page.evaluate(() => {
         const containers = [
@@ -397,14 +397,14 @@ app.post("/scrape", async (req, res) => {
         );
         return { reviews: reviewCount };
       });
-      await delay(800); // Delay azaltıldı
+      await delay(1500); // Delay artırıldı, daha yavaş scroll
       if (reviews === lastReviewCount) {
         sameCountStreak++;
       } else {
         sameCountStreak = 0;
       }
       lastReviewCount = reviews;
-      if (i % 20 === 0) { // Log sıklığı azalt
+      if (i % 20 === 0) { // Log sıklığı aynı
         console.log(`📊 Scroll ${i} | Yorum: ${reviews} | Sabit: ${sameCountStreak}`);
       }
       if (sameCountStreak >= SAME_LIMIT && i > 20) {
