@@ -9,9 +9,7 @@ app.use(express.json());
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Ana sağlık kontrolü
 app.get("/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
-// Chrome debug kontrolü
 app.get("/debug-chrome", (req, res) => {
   const paths = [
     "/usr/bin/chromium",
@@ -28,7 +26,7 @@ app.post("/scrape", async (req, res) => {
   if (!business) return res.json({ error: "İşletme adı gerekli." });
 
   let browser;
-  const visitedReviews = new Set(); // Aynı yorumu tekrar almayı engellemek
+  const visitedReviews = new Set();
 
   try {
     console.log(`🔎 "${business}" aranıyor...`);
@@ -49,13 +47,12 @@ app.post("/scrape", async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.setDefaultTimeout(300000); // 5 dakika
+    await page.setDefaultTimeout(300000);
     await page.setViewport({ width: 1920, height: 1080 });
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-      Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-      Object.defineProperty(navigator, 'languages', { get: () => ['tr-TR', 'tr', 'en-US', 'en'] });
     });
+    // Google cookies
     await page.setCookie({
       name: 'CONSENT',
       value: 'YES+cb.20210720-07-p0.tr+FX+410',
@@ -64,153 +61,135 @@ app.post("/scrape", async (req, res) => {
       expires: Math.floor(Date.now() / 1000) + 31536000
     });
 
-    // Google Maps arama URL
     const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(business)}`;
     console.log("🌐 Google Maps açılıyor...");
-    await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 180000 });
-    await delay(15000); // Uzun bekleme
+    await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
+    await delay(15000);
 
-    // Cookie consent bypass
-    const currentUrl = page.url();
-    if (currentUrl.includes('consent.google.com')) {
+    // Consent bypass
+    if (page.url().includes('consent.google.com')) {
       console.log("⚠️ Consent sayfasında, bypass yapılıyor...");
       await page.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('button'));
-        const acceptBtn = buttons.find(b => /accept|kabul|akzeptieren|alle/i.test(b.textContent));
+        const btns = Array.from(document.querySelectorAll('button'));
+        const acceptBtn = btns.find(b => /accept|kabul|akzeptieren|alle/i.test(b.textContent));
         if (acceptBtn) acceptBtn.click();
       });
       await delay(5000);
       if (page.url().includes('consent.google.com')) {
-        console.log("🔄 Form submit deneniyor...");
         await page.evaluate(() => {
-          const form = document.querySelector('form');
-          if (form) form.submit();
+          document.querySelector('form')?.submit();
         });
         await delay(5000);
       }
     }
 
-    // Sayfa yeniden yükle
+    // Yönlendirme durumu
     if (!page.url().includes('/maps/')) {
-      console.log("🔄 Maps sayfasına yönlendiriliyor...");
-      await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 180000 });
+      await page.goto(searchUrl, { waitUntil: "domcontentloaded" });
       await delay(10000);
     }
     console.log("✅ Consent geçildi, Maps sayfasındayız");
 
-    // Sayfa yapısını analiz et
+    // Sayfa analizi
     const pageAnalysis = await page.evaluate(() => {
       return {
         url: window.location.href,
         title: document.title,
-        placeLinks: document.querySelectorAll('a[href*="/maps/place/"]').length,
-        hfpxzc: document.querySelectorAll('.hfpxzc').length,
-        Nv2PK: document.querySelectorAll('.Nv2PK').length,
-        qBF1Pd: document.querySelectorAll('.qBF1Pd').length,
-        articles: document.querySelectorAll('div[role="article"]').length,
-        divs: document.querySelectorAll('div').length,
-        links: document.querySelectorAll('a').length
+        placeLinksCount: document.querySelectorAll('a[href*="/maps/place/"]').length,
+        hfpxzcCount: document.querySelectorAll('.hfpxzc').length,
+        Nv2PKCount: document.querySelectorAll('.Nv2PK').length,
+        qBF1PdCount: document.querySelectorAll('.qBF1Pd').length,
+        articleCount: document.querySelectorAll('div[role="article"]').length,
+        divCount: document.querySelectorAll('div').length,
+        linkCount: document.querySelectorAll('a').length
       };
     });
-    console.log("📊 Sayfa Analizi:", JSON.stringify(pageAnalysis, null, 2));
+    console.log("📊 Sayfa analizi", pageAnalysis);
 
-    // İşletme kartını bulmak için çeşitli stratejiler
+    // İşletme kartını bulmak
     let placeFound = false;
 
-    // 1. Strateji: Place link bekle ve tıkla
+    // 1. Yöntem: Place link
     if (!placeFound) {
       try {
-        console.log("📍 Strateji 1: Place link bekleniyor (30 saniye)...");
+        console.log("📍 Place link aranıyor...");
         await page.waitForSelector('a[href*="/maps/place/"]', { timeout: 30000 });
         const placeLinks = await page.$$('a[href*="/maps/place/"]');
         if (placeLinks.length > 0) {
-          const firstLinkInfo = await page.evaluate(el => ({ text: el.textContent?.trim().substring(0, 50), href: el.href }), placeLinks[0]);
-          console.log(`📌 Tıklanacak link: ${firstLinkInfo.text} - ${firstLinkInfo.href.substring(0, 80)}`);
           await placeLinks[0].click();
           placeFound = true;
           await delay(5000);
-          await page.waitForNavigation({ timeout: 15000 }).catch(() => {});
-          await delay(5000);
+          await page.waitForNavigation({ waitUntil: 'domcontentloaded' }).catch(() => {});
         }
       } catch (e) {
-        console.log("⚠️ Strateji 1 başarısız:", e.message);
+        console.log("⚠️ Place link bulunamadı");
       }
     }
 
-    // 2. Kartlara tıkla
+    // 2. Yöntem: Kartlara tıkla
     if (!placeFound) {
       try {
-        const cardSelectors = ['.hfpxzc', '.Nv2PK', 'div[role="article"]', '.qBF1Pd', 'div[jsaction*="mouseover"]', 'a.hfpxzc'];
-        for (const selector of cardSelectors) {
-          const cards = await page.$$(selector);
-          if (cards.length > 0) {
-            await cards[0].click();
-            console.log(`✅ Kart tıklandı (${selector})`);
+        const selectors = ['.hfpxzc', '.Nv2PK', 'div[role="article"]', '.qBF1Pd'];
+        for (const sel of selectors) {
+          const elems = await page.$$(sel);
+          if (elems.length > 0) {
+            await elems[0].click();
             placeFound = true;
             await delay(5000);
             break;
           }
         }
       } catch (e) {
-        console.log("⚠️ Strateji 2 başarısız:", e.message);
+        console.log("⚠️ Kartlara tıklama başarısız");
       }
     }
 
     // 3. Koordinat tıklama
     if (!placeFound) {
       try {
-        console.log("📍 Strateji 3: Koordinat tıklama...");
         await page.mouse.click(400, 400);
         await delay(5000);
         if (page.url().includes('/maps/place/')) {
-          console.log("✅ Koordinat tıklama başarılı");
           placeFound = true;
         }
       } catch (e) {
-        console.log("⚠️ Strateji 3 başarısız");
+        console.log("⚠️ Koordinat tıklama başarısız");
       }
     }
 
-    // 4. Direkt URL ile git
+    // 4. Direkt URL
     if (!placeFound) {
       try {
-        console.log("📍 Strateji 4: Direkt URL...");
         const placeUrl = await page.evaluate(() => {
           const link = document.querySelector('a[href*="/maps/place/"]');
-          return link ? link.href : null;
+          return link?.href || null;
         });
         if (placeUrl) {
-          console.log(`🔗 URL'ye gidiliyor: ${placeUrl.substring(0, 100)}...`);
-          await page.goto(placeUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
-          placeFound = true;
+          await page.goto(placeUrl, { waitUntil: 'domcontentloaded' });
           await delay(10000);
+          placeFound = true;
         }
       } catch (e) {
-        console.log("⚠️ Strateji 4 başarısız");
+        console.log("⚠️ Direkt URL başarısız");
       }
     }
 
     if (!placeFound) {
-      console.log("❌ İşletme kartı bulunamadı!");
-      await page.screenshot({ path: '/tmp/debug_no_place.png', fullPage: true });
+      console.log("❌ İşletme kartı bulunamadı");
+      await page.screenshot({ path: '/tmp/no_place.png', fullPage: true });
       const html = await page.content();
-      fs.writeFileSync('/tmp/debug_page.html', html);
-      return res.json({ error: "İşletme kartı bulunamadı.", debug: pageAnalysis });
+      fs.writeFileSync('/tmp/page.html', html);
+      return res.json({ error: "İşletme kartı bulunamadı", debug: pageAnalysis });
     }
-    console.log("🎉 İşletme kartı başarıyla açıldı!");
+    console.log("🎉 İşletme kartı bulundu!");
 
-    // İşletme bilgilerini al
+    // İşletme bilgisi
     const businessInfo = await page.evaluate(() => {
       const name = document.querySelector('h1.DUwDvf, h1')?.innerText?.trim() || 'İşletme adı bulunamadı';
       let address = 'Adres bulunamadı';
-      const rows = Array.from(document.querySelectorAll('button[data-item-id], div[aria-label]'));
-      for (const el of rows) {
-        const label = (el.getAttribute('aria-label') || '').toLowerCase();
-        const text = el.innerText?.replace(/\n/g, ' ').trim();
-        if ((label.includes('address') || label.includes('adres')) && text && text.length > 10) {
-          address = text;
-          break;
-        }
+      const addrEl = document.querySelector('button[data-item-id], div[aria-label]');
+      if (addrEl) {
+        address = addrEl.innerText?.replace(/\n/g, ' ').trim() || address;
       }
       return { name, address };
     });
@@ -220,35 +199,30 @@ app.post("/scrape", async (req, res) => {
     // Yorumlar sekmesini aç
     console.log("💬 Yorumlar sekmesi açılıyor...");
     await delay(3000);
-    let reviewsOpened = false;
 
-    // Yorum butonunu bul ve tıkla
-    const reviewButtonSelectors = [
+    // Yorumlar butonunu bul ve tıkla
+    const reviewBtnSelectors = [
       'button[jsaction*="pane.rating.moreReviews"]',
       'button[aria-label*="review" i]',
       'button[aria-label*="yorum" i]',
-      'button.hh2c6',
-      'button[jsaction*="reviewChart"]',
-      'div.AeaXub button',
-      'button[data-tab-index="1"]'
+      'div.AeaXub button'
     ];
-    for (const selector of reviewButtonSelectors) {
+
+    let reviewsTabOpened = false;
+    for (const sel of reviewBtnSelectors) {
       try {
-        const btn = await page.$(selector);
+        const btn = await page.$(sel);
         if (btn) {
           await btn.click();
-          console.log(`🎯 Yorum butonu bulundu: ${selector}`);
-          reviewsOpened = true;
+          reviewsTabOpened = true;
           await delay(5000);
           break;
         }
-      } catch (e) {
-        // devam et
-      }
+      } catch (e) {}
     }
 
     // Alternatif: Tab ile aç
-    if (!reviewsOpened) {
+    if (!reviewsTabOpened) {
       try {
         for (let i = 0; i < 5; i++) {
           await page.keyboard.press('Tab');
@@ -256,10 +230,7 @@ app.post("/scrape", async (req, res) => {
         }
         await page.keyboard.press('Enter');
         await delay(5000);
-        reviewsOpened = true;
-      } catch (e) {
-        console.log("⚠️ Tab navigation başarısız");
-      }
+      } catch (e) {}
     }
 
     // Sıralama menüsü
@@ -268,28 +239,22 @@ app.post("/scrape", async (req, res) => {
     try {
       const sortSelectors = [
         'button[aria-label*="sırala" i]',
-        'button[aria-label*="sort" i]',
-        'button[data-value="Sort"]',
-        'button[aria-label*="sortieren" i]'
+        'button[aria-label*="sort" i]'
       ];
-      for (const selector of sortSelectors) {
-        const sortBtn = await page.$(selector);
-        if (sortBtn) {
-          await sortBtn.click();
-          console.log("✅ Sıralama menüsü açıldı");
+      for (const sel of sortSelectors) {
+        const btn = await page.$(sel);
+        if (btn) {
+          await btn.click();
           await delay(1500);
           // En düşük puan
-          const lowestSelectors = [
-            '[data-index="1"]',
-            'div[role="menuitemradio"]:nth-child(2)',
-            'li[role="menuitemradio"]:nth-child(2)',
-            '[data-value="qualityScore"]'
+          const optionsSelectors = [
+            '[data-index="1"]', // 1 yıldız
+            'div[role="menuitem"]:nth-child(2)'
           ];
-          for (const opt of lowestSelectors) {
-            const option = await page.$(opt);
-            if (option) {
-              await option.click();
-              console.log("✅ En düşük puanlı seçildi");
+          for (const optSel of optionsSelectors) {
+            const opt = await page.$(optSel);
+            if (opt) {
+              await opt.click();
               await delay(3000);
               break;
             }
@@ -298,114 +263,94 @@ app.post("/scrape", async (req, res) => {
         }
       }
     } catch (e) {
-      console.log("⚠️ Sıralama yapılamadı, tüm yorumlar çekilecek");
+      console.log("⚠️ Sıralama yapılamadı, tüm yorumlar yükleniyor");
     }
 
     // Yorumları scroll ile yükle
-    console.log("📜 Scroll başlatılıyor...");
+    console.log("📜 Scroll başlıyor...");
     let lastCount = 0;
-    let sameCountStreak = 0;
+    let sameCount = 0;
     const MAX_SCROLL = 400;
     const SAME_LIMIT = 8;
+
     for (let i = 0; i < MAX_SCROLL; i++) {
-      const { reviews } = await page.evaluate(() => {
-        const containers = [
-          document.querySelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf'),
-          document.querySelector('.m6QErb'),
-          document.querySelector('div[role="region"]'),
-          document.querySelector('[role="main"]'),
-          document.querySelector('div[tabindex="-1"]')
-        ];
-        const container = containers.find(c => c !== null);
+      const { reviewCount } = await page.evaluate(() => {
+        const container = document.querySelector('div[role="region"]') || document.querySelector('div[aria-label="Yorumlar"]');
         if (container) {
           container.scrollTop = container.scrollHeight;
         }
-        const reviewCount = Math.max(
-          document.querySelectorAll('[data-review-id]').length,
-          document.querySelectorAll('.jftiEf').length,
-          document.querySelectorAll('div[role="article"]').length,
-          document.querySelectorAll('.MyEned').length
-        );
-        return { reviews: reviewCount };
+        const reviews = document.querySelectorAll('[data-review-id], div[role="article"], .jftiEf, .MyEned');
+        return { reviewCount: reviews.length };
       });
       await delay(1200);
-      if (lastCount === reviews) {
-        sameCountStreak++;
+
+      if (lastCount === reviewCount) {
+        sameCount++;
       } else {
-        sameCountStreak = 0;
+        sameCount = 0;
       }
-      lastCount = reviews;
+      lastCount = reviewCount;
+
       if (i % 15 === 0) {
-        console.log(`📊 Scroll ${i} | Yorum: ${reviews} | Sabit: ${sameCountStreak}`);
+        console.log(`🔄 Scroll: ${i} | Toplam Yorum: ${reviewCount} | Sabit: ${sameCount}`);
       }
-      if (sameCountStreak >= SAME_LIMIT && i > 15) {
-        console.log("🛑 Yorum sayısı artmıyor, durduruluyor");
+
+      if (sameCount >= SAME_LIMIT && i > 15) {
+        console.log("🛑 Yorumlar değişmiyor, durduruluyor...");
         break;
       }
     }
-    console.log(`✅ Scroll tamamlandı | Son yorum sayısı: ${lastCount}`);
+    console.log(`✅ Scroll tamamlandı, toplam yorum: ${lastCount}`);
     await delay(3000);
 
-    // Yorumları çek
-    console.log("🔍 Yorumlar parse ediliyor...");
+    // Yorumları parse et
+    console.log("🔍 Yorumlar alınıyor...");
     const reviews = await page.evaluate(() => {
       const results = [];
-      const seenKeys = new Set();
+      const seen = new Set();
 
-      const reviewSelectors = [
-        'div[role="article"]',
-        '[data-review-id]',
-        '.jftiEf',
-        '.MyEned'
-      ];
+      const reviewNodes = Array.from(document.querySelectorAll('[data-review-id], div[role="article"], .jftiEf, .MyEned'));
+      console.log(`📝 Toplam Yorum Kartı: ${reviewNodes.length}`);
 
-      let reviewElements = [];
-      for (const selector of reviewSelectors) {
-        const els = document.querySelectorAll(selector);
-        if (els.length > reviewElements.length) {
-          reviewElements = Array.from(els);
-        }
-      }
-
-      console.log(`📝 ${reviewElements.length} yorum kartı bulundu`);
-
-      for (const card of reviewElements) {
+      reviewNodes.forEach(node => {
         try {
           // Yıldız
           let rating = null;
-          const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
+          const starEl = node.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
           if (starEl) {
             const match = starEl.getAttribute('aria-label')?.match(/(\d+)/);
             if (match) rating = parseInt(match[1]);
           }
-          if (!rating || rating > 2) continue; // Sadece 1-2 yıldız
+          if (!rating || rating > 2) return; // sadece 1-2 yıldız
 
+          // Yorum metni
           let text = '';
-          const textEl = card.querySelector('.wiI7pd, span[data-expandable-section]');
-          if (textEl) text = textEl.textContent?.trim() || '';
-
-          let author = 'Anonim';
-          const authorEl = card.querySelector('.d4r55');
-          if (authorEl) {
-            author = authorEl.textContent?.trim().split('·')[0].trim() || 'Anonim';
+          const textEl = node.querySelector('.wiI7pd, span[data-expandable-section]');
+          if (textEl) {
+            text = textEl.innerText.trim();
           }
 
-          // Aynı yorumu tekrar alma
-          const hasText = text.length > 0;
-          const uniqueKey = hasText ? `text_${text.substring(0, 80)}` : `empty_${author}_${rating}`;
+          // Yazar
+          let author = 'Anonim';
+          const authorEl = node.querySelector('.d4r55');
+          if (authorEl) {
+            author = authorEl.innerText.trim().split('·')[0];
+          }
 
-          if (visitedReviews.has(uniqueKey)) continue;
-          visitedReviews.add(uniqueKey);
+          // Benzersiz anahtar
+          const keyText = text.length > 0 ? text.substring(0, 80) : '';
+          const key = `text_${keyText}_${author}_${rating}`;
 
-          results.push({ rating, text, author, hasReview: hasText });
-        } catch (e) {
-          // hata olursa devam et
-        }
-      }
+          if (seen.has(key)) return;
+          seen.add(key);
+
+          results.push({ rating, text, author, hasReview: text.length > 0 });
+        } catch (e) {}
+      });
       return results;
     });
 
-    console.log(`✅ Toplam ${reviews.length} adet 1-2 yıldızlı yorum çekildi`);
+    console.log(`✅ Çekilen 1 ve 2 yıldızlı yorumlar: ${reviews.length}`);
 
     // İstatistikler
     const oneStarCount = reviews.filter(r => r.rating === 1).length;
@@ -415,17 +360,8 @@ app.post("/scrape", async (req, res) => {
       success: true,
       name: await page.evaluate(() => document.querySelector('h1.DUwDvf, h1')?.innerText?.trim() || 'İşletme adı bulunamadı'),
       address: await page.evaluate(() => {
-        let addr = 'Adres bulunamadı';
-        const rows = Array.from(document.querySelectorAll('button[data-item-id], div[aria-label]'));
-        for (const el of rows) {
-          const label = (el.getAttribute('aria-label') || '').toLowerCase();
-          const text = el.innerText?.replace(/\n/g, ' ').trim();
-          if ((label.includes('address') || label.includes('adres')) && text && text.length > 10) {
-            addr = text;
-            break;
-          }
-        }
-        return addr;
+        const addrEl = document.querySelector('button[data-item-id], div[aria-label]');
+        return addrEl ? addrEl.innerText.replace(/\n/g, ' ').trim() : 'Adres bulunamadı';
       }),
       "1_star": oneStarCount,
       "2_star": twoStarCount,
@@ -437,8 +373,9 @@ app.post("/scrape", async (req, res) => {
       reviews_2_star: reviews.filter(r => r.rating === 2),
       total_reviews_scraped: reviews.length
     });
+
   } catch (err) {
-    console.error("❌ HATA:", err.message);
+    console.error("❌ Hata:", err.message);
     res.json({ success: false, error: err.message });
   } finally {
     if (browser) {
