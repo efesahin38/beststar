@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReviewShield - Profesyonel İtibar Danışmanlığı</title>
+    <meta name="description" content="Google Maps yorumlarınızı profesyonel hukuki destek ile yönetin. Uzman ekibimiz yanınızda.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: '#0f172a',
+                        ocean: '#0891b2',
+                        coral: '#f97316',
+                        mint: '#10b981',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            font-family: 'Outfit', sans-serif;
+        }
+        
+        .hero-pattern {
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(8, 145, 178, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+        }
+        
+        .floating {
+            animation: floating 6s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(2deg); }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card-3d {
+            transform-style: preserve-3d;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-3d:hover {
+            transform: translateY(-15px) rotateX(5deg);
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 30px rgba(8, 145, 178, 0.6);
+        }
+        
+        .badge-shine {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .badge-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .progress-ring {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        
+        .review-enter {
+            animation: reviewEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0;
+        }
+        
+        @keyframes reviewEnter {
+            from {
+                opacity: 0;
+                transform: translateX(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+            }
+        }
+        
+        .testimonial-img {
+            position: relative;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 683 842"><rect fill="%230f172a" width="683" height="842"/><g fill="%23f97316" opacity="0.1"><circle cx="100" cy="100" r="50"/><circle cx="583" cy="150" r="40"/><circle cx="150" cy="742" r="60"/><circle cx="550" cy="700" r="45"/></g></svg>') center/cover;
+        }
+        
+        .mobile-menu-overlay {
+            backdrop-filter: blur(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .step-connector {
+            position: relative;
+        }
+        
+        .step-connector::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -50%;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, rgba(8, 145, 178, 0.5), transparent);
+        }
+        
+        .process-card {
+            position: relative;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .process-card:hover {
+            transform: scale(1.08) translateY(-10px);
+        }
+        
+        .process-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(45deg, #0891b2, #f97316, #10b981);
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: -1;
+        }
+        
+        .process-card:hover::before {
+            opacity: 0.3;
+            animation: borderRotate 3s linear infinite;
+        }
+        
+        @keyframes borderRotate {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+    </style>
+    <style>
+/* GTranslate body / html bozmasını engelle */
+html, body {
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
+    filter: none !important;
+}
+body {
+  isolation: isolate;
+}
+
+
+/* GTranslate overlay varsa iptal et */
+body > .gt_float_wrapper,
+body > .gtranslate_wrapper {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* GTranslate iframe etkisini azalt */
+iframe[src*="gtranslate"] {
+    filter: none !important;
+}
+</style>
+
+</head>
+<script>
+    window.gtranslateSettings = {
+        "default_language": "tr",
+        "languages": ["tr", "en", "de"],
+        "wrapper_selector": ".gtranslate_wrapper",
+        "switcher_horizontal_position": "right",
+        "flag_style": "3d"
+    }
+</script>
+
+<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script>
+<body  
+class="text-white min-h-screen">
+
+
+    
+    <!-- Navigation -->
+    <nav class="fixed w-full top-0 z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 lg:px-8">
+            <div class="flex justify-between items-center h-24">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-gradient-to-br from-ocean to-mint rounded-2xl flex items-center justify-center text-3xl font-bold shadow-2xl shadow-ocean/30">
+                        ✓
+                    </div>
+                    <span class="text-3xl font-display font-black bg-gradient-to-r from-ocean to-mint bg-clip-text text-transparent">
+                        ReviewShield
+                    </span>
+                </div>
+                
+                <div class="hidden lg:flex items-center space-x-10">
+                    <a href="#anasayfa" class="text-lg hover:text-ocean transition-all duration-300">Ana Sayfa</a>
+                    <a href="#hizmetler" class="text-lg hover:text-ocean transition-all duration-300">Hizmetlerimiz</a>
+                    <a href="#nasil" class="text-lg hover:text-ocean transition-all duration-300">Nasıl Çalışır?</a>
+                    <a href="#baslayalim" class="px-8 py-4 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-ocean/40 transition-all duration-300 hover:scale-105">
+                        Başlayalım
+                    </a>
+                </div>
+                
+                <button onclick="toggleMenu()" class="lg:hidden text-4xl hover:text-ocean transition-colors">
+                    ☰
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="lg:hidden fixed inset-0 mobile-menu-overlay bg-navy/95 transform translate-x-full transition-transform duration-300 z-50">
+            <div class="flex flex-col h-full p-8">
+                <button onclick="toggleMenu()" class="self-end text-4xl mb-12 hover:text-ocean transition-colors">✕</button>
+                <div class="flex flex-col space-y-8 text-2xl">
+                    <a href="#anasayfa" onclick="toggleMenu()" class="hover:text-ocean transition-colors">Ana Sayfa</a>
+                    <a href="#hizmetler" onclick="toggleMenu()" class="hover:text-ocean transition-colors">Hizmetlerimiz</a>
+                    <a href="#nasil" onclick="toggleMenu()" class="hover:text-ocean transition-colors">Nasıl Çalışır?</a>
+                    <a href="#baslayalim" onclick="toggleMenu()" class="px-8 py-4 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-center hover:shadow-xl transition-all">
+                        Başlayalım
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="anasayfa" class="relative pt-40 pb-24 px-6 lg:px-8 hero-pattern overflow-hidden">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid lg:grid-cols-2 gap-16 items-center">
+                <div class="slide-up">
+                    <div class="inline-flex items-center space-x-3 px-8 py-4 glass rounded-full mb-10 badge-shine">
+                        <span class="w-4 h-4 bg-mint rounded-full animate-pulse"></span>
+                        <span class="font-semibold text-lg">Profesyonel • Hızlı • Güvenilir</span>
+                    </div>
+                    
+                    <h1 class="text-6xl lg:text-7xl xl:text-8xl font-display font-black leading-tight mb-8">
+                        İtibarınız
+                        <br>
+                        <span class="glow-text bg-gradient-to-r from-ocean via-mint to-coral bg-clip-text text-transparent">
+                            Bizim İşimiz
+                        </span>
+                    </h1>
+                    
+                    <p class="text-2xl text-gray-300 leading-relaxed mb-12 max-w-2xl">
+                        Google Maps'teki haksız yorumlar işinize zarar mı veriyor? Uzman hukuk ekibimiz ve gelişmiş analiz sistemimizle yanınızdayız.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-6">
+                        <button onclick="scrollToStart()" class="group px-12 py-6 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-xl hover:shadow-2xl hover:shadow-ocean/50 transition-all hover:scale-105">
+                            <span class="flex items-center justify-center space-x-3">
+                                <span>Ücretsiz Analiz</span>
+                                <span class="text-2xl group-hover:translate-x-2 transition-transform">→</span>
+                            </span>
+                        </button>
+                        <button onclick="document.getElementById('nasil').scrollIntoView({behavior:'smooth'})" class="px-12 py-6 glass rounded-2xl font-bold text-xl hover:bg-white/10 transition-all">
+                            Detaylı Bilgi
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="relative floating hidden lg:block">
+                    <div class="testimonial-img rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10">
+                        <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&h=1000&fit=crop" alt="Mutlu Müşteriler" class="w-full h-auto">
+                        <!-- Floating Review Badges -->
+                        <div class="absolute top-8 left-8 glass rounded-2xl p-4 shadow-xl animate-pulse">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-3xl">⭐⭐⭐⭐⭐</span>
+                            </div>
+                            <p class="text-sm font-semibold mt-2">Max B.</p>
+                        </div>
+                        <div class="absolute top-32 right-8 glass rounded-2xl p-4 shadow-xl" style="animation-delay: 0.5s">
+                            <div class="text-coral text-3xl mb-2">❤️</div>
+                            <p class="text-sm font-semibold">Harika!</p>
+                        </div>
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 glass rounded-2xl p-5 shadow-xl" style="animation-delay: 0.8s">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-3xl">⭐⭐⭐⭐⭐</span>
+                            </div>
+                            <p class="text-sm font-semibold mt-2">Excellent!</p>
+                        </div>
+                        <div class="absolute bottom-32 left-12 glass rounded-2xl p-4 shadow-xl" style="animation-delay: 1s">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-3xl">⭐⭐⭐⭐⭐</span>
+                            </div>
+                            <p class="text-sm font-semibold mt-2">Lena B.</p>
+                        </div>
+                        <div class="absolute bottom-8 right-12 glass rounded-2xl p-6 shadow-xl" style="animation-delay: 1.5s">
+                            <div class="text-mint text-4xl">👍</div>
+                            <p class="text-sm font-semibold mt-2">Sehr gut!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="py-20 px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="glass rounded-3xl p-10 text-center card-3d">
+                    <div class="text-6xl font-black bg-gradient-to-r from-ocean to-mint bg-clip-text text-transparent mb-3 counter" data-target="15200">0</div>
+                    <div class="text-gray-400 text-lg">Çözülen Durum</div>
+                </div>
+                <div class="glass rounded-3xl p-10 text-center card-3d">
+                    <div class="text-6xl font-black bg-gradient-to-r from-mint to-coral bg-clip-text text-transparent mb-3"><span class="counter" data-target="96">0</span>%</div>
+                    <div class="text-gray-400 text-lg">Başarı Oranı</div>
+                </div>
+                <div class="glass rounded-3xl p-10 text-center card-3d">
+                    <div class="text-6xl font-black bg-gradient-to-r from-coral to-ocean bg-clip-text text-transparent mb-3 counter" data-target="2800">0</div>
+                    <div class="text-gray-400 text-lg">Memnun Müşteri</div>
+                </div>
+                <div class="glass rounded-3xl p-10 text-center card-3d">
+                    <div class="text-6xl font-black bg-gradient-to-r from-ocean to-coral bg-clip-text text-transparent mb-3 counter" data-target="36">0</div>
+                    <div class="text-gray-400 text-lg">Saat Ortalama Süre</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services -->
+    <section id="hizmetler" class="py-24 px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-20">
+                <h2 class="text-5xl lg:text-7xl font-display font-black mb-8">
+                    Sabit Fiyata <span class="bg-gradient-to-r from-ocean to-coral bg-clip-text text-transparent">Dahil Olanlar</span>
+                </h2>
+                <p class="text-2xl text-gray-300 max-w-3xl mx-auto">Şeffaf süreç, net sonuçlar - gizli maliyet yok</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
+                <div class="glass rounded-3xl p-10 card-3d group">
+                    <div class="w-20 h-20 bg-gradient-to-br from-ocean to-mint rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
+                        🔍
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">Başarı Analizi</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">Google yorumlarınızı profesyonel hukuki perspektiften inceler, silme şansınızı değerlendiririz. Tamamen ücretsiz ve bağlayıcı değil.</p>
+                </div>
+                
+                <div class="glass rounded-3xl p-10 card-3d group">
+                    <div class="w-20 h-20 bg-gradient-to-br from-mint to-coral rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
+                        📝
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">Hukuki Müdahale</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">Avukat ekibimiz Google'a resmi bir yazı gönderir. Platform, haksız yorumları kaldırması için yasal olarak uyarılır.</p>
+                </div>
+                
+                <div class="glass rounded-3xl p-10 card-3d group">
+                    <div class="w-20 h-20 bg-gradient-to-br from-coral to-ocean rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
+                        💬
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">Google İletişimi</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">Her yorum hemen silinmez - bazen detaylı yazışma gerekir. Tüm iletişimi profesyonelce yönetir, sizin adınıza takip ederiz.</p>
+                </div>
+                
+                <div class="glass rounded-3xl p-10 card-3d group">
+                    <div class="w-20 h-20 bg-gradient-to-br from-mint to-ocean rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
+                        ✅
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">Silme Kontrolü</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">Google yorumları kaldırdığında, gerçek silinme durumunu doğrularız. Tüm yorumlar ve yorumlar kalıcı olarak temizlenmelidir.</p>
+                </div>
+                
+                <div class="glass rounded-3xl p-10 card-3d group">
+                    <div class="w-20 h-20 bg-gradient-to-br from-ocean to-coral rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
+                        ⚖️
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">İleri Adımlar</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">Çoğu durumda avukatlık mektubu yeterlidir. Başarısızsa, resmi uyarı ve mahkeme süreçleri için ayrı teklif sunuyoruz.</p>
+                </div>
+                
+                <div class="glass rounded-3xl p-10 card-3d group">
+                    <div class="w-20 h-20 bg-gradient-to-br from-coral to-mint rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
+                        📞
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">Termin Gerektirmez</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">Tüm iletişim online - iletişim formu, e-posta veya telefon ile. Kişisel randevu için ofise gelmeniz gerekmiyor.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Process -->
+    <section id="nasil" class="py-24 px-6 lg:px-8 glass">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-20">
+                <h2 class="text-5xl lg:text-7xl font-display font-black mb-8">
+                    <span class="bg-gradient-to-r from-ocean to-mint bg-clip-text text-transparent">4 Adımda</span> Çözüm
+                </h2>
+                <p class="text-2xl text-gray-300">Basit, şeffaf ve etkili süreç</p>
+            </div>
+            
+            <div class="grid lg:grid-cols-4 gap-8">
+                <div class="process-card glass rounded-3xl p-10 text-center step-connector">
+                    <div class="w-36 h-36 mx-auto bg-gradient-to-br from-ocean to-mint rounded-full flex items-center justify-center text-6xl font-black mb-8 shadow-2xl shadow-ocean/40">
+                        1
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">İşletme Bilgisi</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">İşletme adınızı girin - sistemimiz otomatik olarak Google Maps profilinizi bulur ve tüm yorumları tarar.</p>
+                </div>
+                
+                <div class="process-card glass rounded-3xl p-10 text-center step-connector">
+                    <div class="w-36 h-36 mx-auto bg-gradient-to-br from-mint to-coral rounded-full flex items-center justify-center text-6xl font-black mb-8 shadow-2xl shadow-mint/40">
+                        2
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">Akıllı Değerlendirme</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">AI destekli sistemimiz her yorumu hukuki açıdan inceler, Google politikalarına aykırı içerikleri tespit eder.</p>
+                </div>
+                
+                <div class="process-card glass rounded-3xl p-10 text-center step-connector">
+                    <div class="w-36 h-36 mx-auto bg-gradient-to-br from-coral to-ocean rounded-full flex items-center justify-center text-6xl font-black mb-8 shadow-2xl shadow-coral/40">
+                        3
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">Detaylı Rapor</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">Anında detaylı analiz raporu alın. Hangi yorumların silinebileceğini ve tahmini süreyi öğrenin.</p>
+                </div>
+                
+                <div class="process-card glass rounded-3xl p-10 text-center">
+                    <div class="w-36 h-36 mx-auto bg-gradient-to-br from-ocean via-mint to-coral rounded-full flex items-center justify-center text-6xl font-black mb-8 shadow-2xl shadow-ocean/40">
+                        4
+                    </div>
+                    <h3 class="text-3xl font-bold mb-6">Hukuki Süreç</h3>
+                    <p class="text-gray-300 text-lg leading-relaxed">Onay verirseniz, uzman avukat ekibimiz harekete geçer ve sizin adınıza tüm işlemleri yürütür.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section id="baslayalim" class="py-24 px-6 lg:px-8">
+        <div class="max-w-5xl mx-auto">
+            <div class="glass rounded-3xl p-12 lg:p-16 shadow-2xl">
+                <div class="text-center mb-12">
+                    <div class="inline-flex items-center space-x-3 px-8 py-4 bg-mint/20 rounded-full mb-8">
+                        <span class="text-4xl">🎯</span>
+                        <span class="text-xl font-bold text-mint">%100 Ücretsiz Analiz</span>
+                    </div>
+                    <h2 class="text-4xl lg:text-6xl font-display font-black mb-6">
+                        Hemen <span class="bg-gradient-to-r from-ocean to-coral bg-clip-text text-transparent">Başlayın</span>
+                    </h2>
+                    <p class="text-xl lg:text-2xl text-gray-300">Kredi kartı bilgisi istenmez • Anında sonuç • Gizlilik garantisi</p>
+                </div>
+                
+                <div class="max-w-2xl mx-auto space-y-8">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="businessInput" 
+                            placeholder="İşletme adınızı yazın (örneğin: Mehmet'in Kebabı Köln)"
+                            class="w-full px-8 py-7 bg-white/5 border-2 border-white/20 rounded-2xl text-white text-xl placeholder-gray-400 focus:outline-none focus:border-ocean focus:bg-white/10 transition-all"
+                            onkeypress="if(event.key==='Enter') beginAnalysis()"
+                        >
+                        <div class="absolute right-6 top-1/2 -translate-y-1/2 text-3xl opacity-50">🔎</div>
+                    </div>
+                    
+                    <button 
+                        id="startBtn"
+                        onclick="beginAnalysis()" 
+                        class="w-full py-7 bg-gradient-to-r from-ocean via-mint to-coral rounded-2xl font-bold text-2xl hover:shadow-2xl hover:shadow-ocean/50 transition-all hover:scale-105 relative overflow-hidden group"
+                    >
+                        <span class="relative z-10 flex items-center justify-center space-x-3">
+                            <span>Analizi Başlat</span>
+                            <span class="text-3xl group-hover:translate-x-2 transition-transform">🚀</span>
+                        </span>
+                        <div class="absolute inset-0 bg-gradient-to-r from-coral via-mint to-ocean opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    </button>
+                    
+                    <div class="flex items-center justify-center space-x-8 text-gray-400 text-sm">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-mint text-2xl">✓</span>
+                            <span>GDPR Uyumlu</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-mint text-2xl">✓</span>
+                            <span>SSL Güvenli</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-mint text-2xl">✓</span>
+                            <span>Gizli Veri</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="loadingSection" class="hidden mt-12 max-w-2xl mx-auto">
+                    <div class="text-center mb-8">
+                        <div class="inline-flex items-center space-x-4 px-8 py-4 glass rounded-full">
+                            <div class="w-5 h-5 bg-ocean rounded-full animate-ping"></div>
+                            <span class="text-xl font-semibold">Profesyonel analiz yapılıyor...</span>
+                        </div>
+                    </div>
+                    <div class="relative h-4 bg-white/10 rounded-full overflow-hidden">
+                        <div id="progressBar" class="absolute inset-y-0 left-0 w-0 bg-gradient-to-r from-ocean via-mint to-coral transition-all duration-500 shadow-lg shadow-ocean/50"></div>
+                    </div>
+                    <p class="text-center text-gray-400 mt-4 text-sm">Bu işlem 10-15 saniye sürebilir</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Container -->
+    <div id="resultsArea" class="px-6 lg:px-8 pb-24"></div>
+
+    <!-- Footer -->
+    <footer class="py-20 px-6 lg:px-8 glass border-t border-white/10">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                <div>
+                    <div class="flex items-center space-x-4 mb-6">
+                        <div class="w-12 h-12 bg-gradient-to-br from-ocean to-mint rounded-2xl flex items-center justify-center text-2xl font-bold">
+                            ✓
+                        </div>
+                        <span class="text-2xl font-display font-black">ReviewShield</span>
+                    </div>
+                    <p class="text-gray-400 leading-relaxed text-lg">Dijital itibarınızı korumak ve işletmenizi büyütmek için profesyonel hukuki danışmanlık hizmetleri.</p>
+                </div>
+                
+                <div>
+                    <h4 class="text-xl font-bold mb-6">Hızlı Erişim</h4>
+                    <div class="space-y-3">
+                        <a href="#anasayfa" class="block text-gray-400 hover:text-ocean transition-colors text-lg">Ana Sayfa</a>
+                        <a href="#hizmetler" class="block text-gray-400 hover:text-ocean transition-colors text-lg">Hizmetlerimiz</a>
+                        <a href="#nasil" class="block text-gray-400 hover:text-ocean transition-colors text-lg">Nasıl Çalışır?</a>
+                        <a href="#baslayalim" class="block text-gray-400 hover:text-ocean transition-colors text-lg">Analiz Başlat</a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-xl font-bold mb-6">İletişim</h4>
+                    <div class="space-y-4">
+                        <a href="https://wa.me/4917627729811" class="flex items-center space-x-3 text-gray-400 hover:text-mint transition-colors group">
+                            <span class="text-3xl group-hover:scale-110 transition-transform">💬</span>
+                            <span class="text-lg">WhatsApp Destek</span>
+                        </a>
+                        <a href="mailto:efeshn.business@gmail.com" class="flex items-center space-x-3 text-gray-400 hover:text-ocean transition-colors group">
+                            <span class="text-3xl group-hover:scale-110 transition-transform">📧</span>
+                            <span class="text-lg">E-posta</span>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h4 class="text-xl font-bold mb-6">Çalışma Saatleri</h4>
+                    <div class="space-y-3 text-gray-400 text-lg">
+                        <p>Pazartesi - Cuma: 09:00 - 18:00</p>
+                        <p>Cumartesi: 10:00 - 14:00</p>
+                        <p>Pazar: Kapalı</p>
+                        <p class="text-mint font-semibold">E-posta: 7/24 Aktif</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-10 border-t border-white/10 text-center">
+                <p class="text-gray-400 text-lg">© 2025 ReviewShield. Tüm hakları saklıdır. Profesyonel İtibar Danışmanlığı.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const BACKEND_API = 'https://starguard.onrender.com'; // <-- Burayı kendi Render URL'inle değiştir
+        let allReviews = { '1_star': [], '2_star': [] };
+
+        function toggleMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('translate-x-full');
+        }
+
+        function scrollToStart() {
+            document.getElementById('baslayalim').scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => document.getElementById('businessInput').focus(), 700);
+        }
+
+        // Counter Animation with Intersection Observer
+        const counters = document.querySelectorAll('.counter');
+        const counterObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const target = parseInt(entry.target.getAttribute('data-target'));
+                    animateNumber(entry.target, target);
+                    counterObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        counters.forEach(counter => counterObserver.observe(counter));
+
+        function animateNumber(element, target) {
+            let current = 0;
+            const increment = target / 50;
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= target) {
+                    element.textContent = target.toLocaleString('tr-TR');
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.ceil(current).toLocaleString('tr-TR');
+                }
+            }, 30);
+        }
+
+        async function beginAnalysis() {
+            const businessName = document.getElementById('businessInput').value.trim();
+            if (!businessName) {
+                alert('⚠️ Lütfen işletme adını girin');
+                return;
+            }
+
+            const loadingSection = document.getElementById('loadingSection');
+            const progressBar = document.getElementById('progressBar');
+            const resultsArea = document.getElementById('resultsArea');
+            const startBtn = document.getElementById('startBtn');
+
+            loadingSection.classList.remove('hidden');
+            resultsArea.innerHTML = '';
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span class="flex items-center justify-center space-x-3"><span>Analiz ediliyor</span><span class="animate-pulse">⏳</span></span>';
+
+            let progress = 0;
+            const progressTimer = setInterval(() => {
+                progress += Math.random() * 8 + 4;
+                if (progress > 90) progress = 90;
+                progressBar.style.width = progress + '%';
+            }, 300);
+
+            try {
+                const response = await fetch(`${BACKEND_API}/scrape`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ business: businessName })
+                });
+                const data = await response.json();
+
+                clearInterval(progressTimer);
+                progressBar.style.width = '100%';
+
+                if (data.error) throw new Error(data.error);
+
+                allReviews['1_star'] = data.reviews_1_star || [];
+                allReviews['2_star'] = data.reviews_2_star || [];
+
+                showResults(data);
+            } catch (error) {
+                clearInterval(progressTimer);
+                progressBar.style.width = '100%';
+                showDemoResults();
+            } finally {
+                startBtn.disabled = false;
+                startBtn.innerHTML = '<span class="relative z-10 flex items-center justify-center space-x-3"><span>Analizi Başlat</span><span class="text-3xl group-hover:translate-x-2 transition-transform">🚀</span></span>';
+                setTimeout(() => loadingSection.classList.add('hidden'), 1000);
+            }
+        }
+
+        function showDemoResults() {
+            const totalNegative = 61;
+            const oneStar = 42;
+            const twoStar = 19;
+            const estimatedLoss = totalNegative * 1200;
+
+            const html = `
+                <div class="max-w-6xl mx-auto">
+                    <div class="glass rounded-3xl p-12 lg:p-16">
+                        <div class="text-center mb-12">
+                            <div class="inline-flex items-center space-x-3 px-8 py-4 bg-mint/20 rounded-full mb-8">
+                                <span class="text-4xl">✅</span>
+                                <span class="text-2xl font-bold text-mint">Analiz Tamamlandı (Demo)</span>
+                            </div>
+                            <button onclick="location.reload()" class="px-10 py-4 glass rounded-2xl hover:bg-white/10 transition-all text-lg font-semibold">
+                                🔄 Yeni Analiz Yap
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                            <div class="glass rounded-2xl p-8 text-center card-3d">
+                                <div class="text-6xl font-black text-red-400 mb-4">${totalNegative}</div>
+                                <div class="text-gray-400 text-lg">Olumsuz Yorum</div>
+                            </div>
+                            <div class="glass rounded-2xl p-8 text-center card-3d">
+                                <div class="text-6xl font-black text-red-500 mb-4">${oneStar}</div>
+                                <div class="text-gray-400 text-lg">1 Yıldız</div>
+                            </div>
+                            <div class="glass rounded-2xl p-8 text-center card-3d">
+                                <div class="text-6xl font-black text-orange-500 mb-4">${twoStar}</div>
+                                <div class="text-gray-400 text-lg">2 Yıldız</div>
+                            </div>
+                            <div class="glass rounded-2xl p-8 text-center card-3d">
+                                <div class="text-6xl font-black text-red-400 mb-4">€${estimatedLoss.toLocaleString('tr-TR')}</div>
+                                <div class="text-gray-400 text-lg">Tahmini Kayıp</div>
+                            </div>
+                        </div>
+
+                        <div class="text-center max-w-3xl mx-auto">
+                            <h3 class="text-4xl lg:text-5xl font-bold mb-6">
+                                🚨 <span class="text-red-400">${totalNegative} Olumsuz Yorum</span> Tespit Edildi
+                            </h3>
+                            <p class="text-xl lg:text-2xl text-gray-300 mb-10 leading-relaxed">
+                                Bu yorumlar işletmenizin gelirini ciddi şekilde etkileyebilir. Profesyonel hukuki destek ile bu yorumları kaldırabilir, itibarınızı koruyabilirsiniz.
+                            </p>
+                            <div class="glass rounded-2xl p-8 mb-10">
+                                <h4 class="text-2xl font-bold mb-4 text-coral">💡 Önemli Bilgi</h4>
+                                <p class="text-lg text-gray-300 leading-relaxed">
+                                    Her olumsuz yorum ortalama <strong class="text-ocean">1.200€</strong> gelir kaybına neden olur. 
+                                    Hemen harekete geçerek işletmenizi koruyun!
+                                </p>
+                            </div>
+                            <a href="https://wa.me/4917627729811?text=Merhaba! İşletmem için ${totalNegative} olumsuz yorum tespit edildi. Detaylı teklif ve danışmanlık almak istiyorum." 
+                               class="inline-block px-12 py-7 bg-gradient-to-r from-mint to-emerald-600 rounded-2xl font-bold text-2xl hover:shadow-2xl hover:shadow-mint/50 transition-all hover:scale-105">
+                                💬 WhatsApp'tan Profesyonel Teklif Alın
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resultsArea').innerHTML = html;
+            document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function showResults(data) {
+            const totalNegative = allReviews['1_star'].length + allReviews['2_star'].length;
+            const estimatedLoss = totalNegative * 1200;
+
+            const html = `
+                <div class="max-w-6xl mx-auto">
+                    <div class="glass rounded-3xl p-12 lg:p-16">
+                        <div class="text-center mb-12">
+                            <div class="inline-flex items-center space-x-3 px-8 py-4 bg-mint/20 rounded-full mb-8">
+                                <span class="text-4xl">✅</span>
+                                <span class="text-2xl font-bold text-mint">Analiz Başarıyla Tamamlandı</span>
+                            </div>
+                            <h3 class="text-4xl font-bold mb-4">${data.name || 'İşletme Bulunamadı'}</h3>
+                            <p class="text-xl text-gray-400 mb-8">📍 ${data.address || 'Adres bilgisi mevcut değil'}</p>
+                            <button onclick="location.reload()" class="px-10 py-4 glass rounded-2xl hover:bg-white/10 transition-all text-lg font-semibold">
+                                🔄 Yeni Analiz Yap
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                            <div class="glass rounded-2xl p-8 text-center card-3d">
+                                <div class="text-6xl font-black text-red-400 mb-4">${totalNegative}</div>
+                                <div class="text-gray-400 text-lg">Toplam Olumsuz</div>
+                            </div>
+                            <div class="glass rounded-2xl p-8 text-center card-3d">
+                                <div class="text-6xl font-black text-red-500 mb-4">${allReviews['1_star'].length}</div>
+                                <div class="text-gray-400 text-lg">1 Yıldız</div>
+                            </div>
+                            <div class="glass rounded-2xl p-8 text-center card-3d">
+                                <div class="text-6xl font-black text-orange-500 mb-4">${allReviews['2_star'].length}</div>
+                                <div class="text-gray-400 text-lg">2 Yıldız</div>
+                            </div>
+                            <div class="glass rounded-2xl p-8 text-center card-3d">
+                                <div class="text-6xl font-black text-red-400 mb-4">€${estimatedLoss.toLocaleString('tr-TR')}</div>
+                                <div class="text-gray-400 text-lg">Tahmini Risk</div>
+                            </div>
+                        </div>
+
+                        <div class="text-center max-w-3xl mx-auto mb-16">
+                            <h3 class="text-4xl lg:text-5xl font-bold mb-6">
+                                🚨 <span class="text-red-400">${totalNegative} Olumsuz Yorum</span> Bulundu
+                            </h3>
+                            <p class="text-xl lg:text-2xl text-gray-300 mb-10 leading-relaxed">
+                                Profesyonel hukuki destek ile bu yorumları değerlendirip, Google politikalarına aykırı olanları kaldırabilirsiniz.
+                            </p>
+                            <a href="https://wa.me/4917627729811?text=Merhaba! ${encodeURIComponent(data.name || 'işletmem')} için ${totalNegative} olumsuz yorum tespit edildi. Çözüm önerisi almak istiyorum." 
+                               class="inline-block px-12 py-7 bg-gradient-to-r from-mint to-emerald-600 rounded-2xl font-bold text-2xl hover:shadow-2xl hover:shadow-mint/50 transition-all hover:scale-105">
+                                💬 WhatsApp'tan Teklif Alın
+                            </a>
+                        </div>
+
+                        <div class="mt-20">
+                            <h3 class="text-4xl font-bold text-center mb-12">Tespit Edilen Yorumlar</h3>
+                            
+                            <div class="flex flex-wrap justify-center gap-4 mb-12">
+                                <button class="filter-btn active px-10 py-4 glass rounded-2xl font-bold text-lg transition-all hover:scale-105" data-filter="all">
+                                    Tümü (${totalNegative})
+                                </button>
+                                <button class="filter-btn px-10 py-4 glass rounded-2xl font-bold text-lg transition-all hover:scale-105" data-filter="1_star">
+                                    1 Yıldız (${allReviews['1_star'].length})
+                                </button>
+                                <button class="filter-btn px-10 py-4 glass rounded-2xl font-bold text-lg transition-all hover:scale-105" data-filter="2_star">
+                                    2 Yıldız (${allReviews['2_star'].length})
+                                </button>
+                            </div>
+
+                            <div id="reviewsDisplay" class="space-y-8">
+                                ${generateReviewsHTML('all')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('resultsArea').innerHTML = html;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById('reviewsDisplay').innerHTML = generateReviewsHTML(btn.dataset.filter);
+                });
+            });
+
+            document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function generateReviewsHTML(filter) {
+            let reviews = [];
+            if (filter === 'all') {
+                reviews = [
+                    ...allReviews['1_star'].map(r => ({ ...r, stars: 1 })),
+                    ...allReviews['2_star'].map(r => ({ ...r, stars: 2 }))
+                ];
+            } else if (filter === '1_star') {
+                reviews = allReviews['1_star'].map(r => ({ ...r, stars: 1 }));
+            } else if (filter === '2_star') {
+                reviews = allReviews['2_star'].map(r => ({ ...r, stars: 2 }));
+            }
+
+            if (reviews.length === 0) {
+                return `
+                    <div class="text-center py-24">
+                        <div class="text-7xl mb-8 opacity-20">🔍</div>
+                        <p class="text-3xl text-gray-400">Bu kategoride yorum bulunamadı</p>
+                    </div>
+                `;
+            }
+
+            return reviews.map((review, index) => {
+                const hasText = review.text && review.text.trim().length > 0;
+                const starDisplay = review.stars === 1 ? 'text-red-500' : 'text-orange-500';
+                const badgeStyle = review.stars === 1 
+                    ? 'bg-red-500/20 text-red-300 border-2 border-red-500/40' 
+                    : 'bg-orange-500/20 text-orange-300 border-2 border-orange-500/40';
+                
+                return `
+                    <div class="review-enter glass rounded-3xl p-10 hover:border-ocean/30 border-2 border-white/10 transition-all" style="animation-delay: ${index * 0.08}s">
+                        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6 mb-8">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-4 mb-3">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-ocean to-mint rounded-full flex items-center justify-center text-2xl font-bold">
+                                        ${(review.author || 'A')[0].toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-2xl">${review.author || 'Anonim Kullanıcı'}</div>
+                                        <div class="${starDisplay} text-2xl mt-1">
+                                            ${'⭐'.repeat(review.stars)}${'☆'.repeat(5 - review.stars)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                <span class="${badgeStyle} px-6 py-3 rounded-full text-base font-bold">
+                                    ${review.stars === 1 ? '🔴 Çok Olumsuz' : '🟠 Olumsuz'}
+                                </span>
+                                <span class="glass px-6 py-3 rounded-full text-base font-bold border-2 border-white/20">
+                                    ${hasText ? '💬 Yorumlu' : '⭐ Sadece Puan'}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-xl leading-relaxed text-gray-300">
+                            ${hasText 
+                                ? `<div class="bg-white/5 rounded-2xl p-8 border-l-4 border-${review.stars === 1 ? 'red' : 'orange'}-500">
+                                    <p class="mb-4"><span class="text-3xl opacity-30">"</span></p>
+                                    <p>${review.text}</p>
+                                    <p class="text-right"><span class="text-3xl opacity-30">"</span></p>
+                                   </div>` 
+                                : '<div class="italic text-gray-500 bg-white/5 rounded-2xl p-8 text-center border-2 border-dashed border-white/10">Kullanıcı yalnızca yıldız puanı vermiş, yazılı yorum bırakmamış.</div>'
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+    <div class="gtranslate_wrapper"></div>
+</body>
+
+</html>
+
