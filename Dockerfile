@@ -1,4 +1,3 @@
-# Render.com ve Docker için optimize edilmiş Puppeteer + Chrome
 FROM node:20-slim
 
 # Chrome için gerekli sistem bağımlılıkları
@@ -41,25 +40,24 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# Google Chrome resmi reposunu ekle ve kur
+# Google Chrome kurulumu
 RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
     && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
     && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
-# Çalışma dizini
+# 🔥 PUPPETEER OPTİMİZASYONU (KRİTİK)
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
+
 WORKDIR /app
 
-# package.json kopyala ve bağımlılıkları kur
 COPY package*.json ./
 RUN npm install
 
-# Tüm kodları kopyala
 COPY . .
 
-# Render.com PORT değişkenini kullan
 ENV PORT=3000
 
-# Başlat
 CMD ["node", "backend.js"]
