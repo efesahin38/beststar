@@ -8,9 +8,10 @@ app.use(cors());
 app.use(express.json());
 
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const randomDelay = (min, max) => delay(Math.floor(Math.random() * (max - min + 1)) + min);
 
+// Ana sağlık kontrolü
 app.get("/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+// Chrome debug kontrolü
 app.get("/debug-chrome", (req, res) => {
   const paths = [
     "/usr/bin/chromium",
@@ -27,7 +28,7 @@ app.post("/scrape", async (req, res) => {
   if (!business) return res.json({ error: "İşletme adı gerekli." });
 
   let browser;
-  const visitedReviews = new Set(); // Aynı yorumu tekrar almamak için
+  const visitedReviews = new Set(); // Aynı yorumu tekrar almayı engellemek
 
   try {
     console.log(`🔎 "${business}" aranıyor...`);
@@ -113,7 +114,7 @@ app.post("/scrape", async (req, res) => {
     });
     console.log("📊 Sayfa Analizi:", JSON.stringify(pageAnalysis, null, 2));
 
-    // İşletme kartını bulma (gelişmiş stratejiler)
+    // İşletme kartını bulmak için çeşitli stratejiler
     let placeFound = false;
 
     // 1. Strateji: Place link bekle ve tıkla
@@ -136,7 +137,7 @@ app.post("/scrape", async (req, res) => {
       }
     }
 
-    // 2. Strateji: Kartlara tıkla
+    // 2. Kartlara tıkla
     if (!placeFound) {
       try {
         const cardSelectors = ['.hfpxzc', '.Nv2PK', 'div[role="article"]', '.qBF1Pd', 'div[jsaction*="mouseover"]', 'a.hfpxzc'];
@@ -221,7 +222,7 @@ app.post("/scrape", async (req, res) => {
     await delay(3000);
     let reviewsOpened = false;
 
-    // Yorum butonu tıklama
+    // Yorum butonunu bul ve tıkla
     const reviewButtonSelectors = [
       'button[jsaction*="pane.rating.moreReviews"]',
       'button[aria-label*="review" i]',
@@ -242,7 +243,7 @@ app.post("/scrape", async (req, res) => {
           break;
         }
       } catch (e) {
-        // Devam et
+        // devam et
       }
     }
 
@@ -369,7 +370,6 @@ app.post("/scrape", async (req, res) => {
       console.log(`📝 ${reviewElements.length} yorum kartı bulundu`);
 
       for (const card of reviewElements) {
-        // Yorum detaylarını al
         try {
           // Yıldız
           let rating = null;
@@ -431,9 +431,8 @@ app.post("/scrape", async (req, res) => {
       "2_star": twoStarCount,
       "1_star_with_text": reviews.filter(r => r.rating === 1 && r.hasReview).length,
       "1_star_without_text": reviews.filter(r => r.rating === 1 && !r.hasReview).length,
-      "2_star": twoStarCount,
       "2_star_with_text": reviews.filter(r => r.rating === 2 && r.hasReview).length,
-      "2_star_without_text": reviews.filter(r => r.rating === 2 && !r.hasReview).length,
+      "2_star_without_text": reviews.filter(r => r.rating === 2 && r.hasReview).length,
       reviews_1_star: reviews.filter(r => r.rating === 1),
       reviews_2_star: reviews.filter(r => r.rating === 2),
       total_reviews_scraped: reviews.length
