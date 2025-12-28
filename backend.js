@@ -234,7 +234,7 @@ app.post("/scrape", async (req, res) => {
     console.log(`🔗 Place URL: ${finalPlaceUrl.substring(0, 100)}...`);
 
     // ==========================================
-    // 4. İŞLETME BİLGİLERİNİ AL - SÜPER GÜÇLENDİRİLMİŞ
+    // 4. İŞLETME BİLGİLERİNİ AL - DOĞRU ADRES GARANTİLİ
     // ==========================================
     console.log("📋 İşletme bilgileri alınıyor...");
     
@@ -242,7 +242,7 @@ app.post("/scrape", async (req, res) => {
     await page.waitForSelector('h1.DUwDvf, h1', { timeout: 15000 }).catch(() => 
       console.log("⚠️ H1 bulunamadı")
     );
-    await delay(3000); // Sayfanın yüklenmesi için ekstra süre
+    await delay(3000);
     
     const businessInfo = await page.evaluate(() => {
       // İSİM
@@ -258,118 +258,150 @@ app.post("/scrape", async (req, res) => {
       
       console.log('[DEBUG] İşletme adı:', name);
       
-      // ADRES - HER YOLU DENİYORUZ
+      // ADRES - GOOGLE MAPS GERÇEK YAPISINA GÖRE
       let address = 'Adres bulunamadı';
       let foundMethod = 'none';
       
-      // YÖNTEM 1: Kesin adres butonları (data-item-id)
-      const addressBtn1 = document.querySelector('button[data-item-id="address"]');
-      if (addressBtn1) {
-        const text = (addressBtn1.innerText || addressBtn1.textContent || '').trim();
-        if (text.length > 5 && /\d/.test(text)) {
-          address = text;
-          foundMethod = 'data-item-id';
-          console.log('[DEBUG] Adres bulundu (data-item-id):', address);
-        }
-      }
-      
-      // YÖNTEM 2: Aria-label ile
-      if (address === 'Adres bulunamadı') {
-        const ariaSelectors = [
-          'button[aria-label*="Adres" i]',
-          'button[aria-label*="Address" i]',
-          'div[aria-label*="Adres" i]',
-          '[data-tooltip*="Adres" i]'
-        ];
-        for (const sel of ariaSelectors) {
-          const el = document.querySelector(sel);
-          if (el) {
-            const text = (el.innerText || el.textContent || '').trim();
-            if (text.length > 5 && /\d/.test(text)) {
-              address = text;
-              foundMethod = 'aria-label: ' + sel;
-              console.log('[DEBUG] Adres bulundu (aria):', address);
-              break;
-            }
+      // YÖNTEM 1: data-item-id="address" - EN KESİN
+      try {
+        const addressBtn = document.querySelector('button[data-item-id="address"]');
+        if (addressBtn) {
+          // İçindeki tüm text node'ları al (aria-label değil, gerçek text)
+          const text = addressBtn.textContent?.trim() || addressBtn.innerText?.trim() || '';
+          // Sadece görünen kısmı al (Copy address kısmını çıkar)
+          const cleanText = text.split('Copy address')[0].trim();
+          if (cleanText.length >= 10 && /\d/.test(cleanText)) {
+            address = cleanText;
+            foundMethod = 'data-item-id-button';
+            console.log('[DEBUG] ✅ Adres bulundu (data-item-id button):', address);
           }
         }
+      } catch (e) {
+        console.log('[DEBUG] Yöntem 1 hata:', e.message);
       }
       
-      // YÖNTEM 3: Class selectors
+      // YÖNTEM 2: Adres butonunun yakınındaki div'leri kontrol et
       if (address === 'Adres bulunamadı') {
-        const classSelectors = ['.rogA2c', 'button.rogA2c', '.Io6YTe'];
-        for (const sel of classSelectors) {
-          const el = document.querySelector(sel);
-          if (el) {
-            const text = (el.innerText || el.textContent || '').trim();
-            if (text.length > 5 && /\d/.test(text)) {
-              address = text;
-              foundMethod = 'class: ' + sel;
-              console.log('[DEBUG] Adres bulundu (class):', address);
-              break;
+        try {
+          // Adres butonu varsa, onun parent'ındaki div'lere bak
+          const addressSection = document.querySelector('button[data-item-id="address"]')?.closest('div[class*="Io6YTe"]');
+          if (addressSection) {
+            const divs = addressSection.querySelectorAll('div');
+            for (const div of divs) {
+              const text = div.textContent?.trim() || '';
+              // Kısa, rakam içeren, copy address içermeyen
+              if (text.length >= 10 && text.length <= 150 && /\d/.test(text) && !text.includes('Copy') && !text.includes('address')) {
+                address = text;
+                foundMethod = 'address-section-div';
+                console.log('[DEBUG] ✅ Adres bulundu (address section):', address);
+                break;
+              }
             }
           }
+        } catch (e) {
+          console.log('[DEBUG] Yöntem 2 hata:', e.message);
         }
       }
       
-      // YÖNTEM 4: Tüm butonları detaylı tara
+      // YÖNTEM 3: Yan paneldeki tüm butonları tara, aria-label'a göre filtrele
       if (address === 'Adres bulunamadı') {
-        const allButtons = Array.from(document.querySelectorAll('button'));
-        console.log('[DEBUG] Toplam buton sayısı:', allButtons.length);
-        
-        for (let i = 0; i < allButtons.length; i++) {
-          const btn = allButtons[i];
-          const text = (btn.innerText || btn.textContent || '').trim();
+        try {
+          const sidePanel = document.querySelector('div[role="main"]') || document.body;
+          const allButtons = Array.from(sidePanel.querySelectorAll('button'));
           
-          // Adres pattern kontrolü
-          // 1. Uzunluk: 10-200 karakter
-          // 2. Rakam içermeli
-          // 3. İsimden farklı olmalı
-          // 4. + içermemeli (telefon değil)
-          // 5. Çok fazla boşluk olmamalı
-          if (text.length >= 10 && text.length <= 200 && /\d/.test(text)) {
-            const hasPlus = text.includes('+');
-            const spaceCount = (text.match(/\s/g) || []).length;
-            const isSameName = text.toLowerCase() === name.toLowerCase();
+          console.log('[DEBUG] Toplam buton:', allButtons.length);
+          
+          for (let i = 0; i < allButtons.length; i++) {
+            const btn = allButtons[i];
+            const ariaLabel = btn.getAttribute('aria-label') || '';
+            const text = (btn.textContent || '').trim();
             
-            if (!hasPlus && spaceCount < 15 && !isSameName) {
-              // Ek kontrol: Adres kelimeleri var mı? (Str, Street, sokak, cadde, vb)
-              const hasAddressKeywords = /str|street|sokak|cadde|bulvar|avenue|road|platz|weg/i.test(text);
+            // Aria-label "Address:" veya "Adres:" ile başlıyorsa
+            if (ariaLabel.match(/^(Address|Adres):/i)) {
+              // Text'ten ilk satırı al (genelde adrestir)
+              const lines = text.split('\n').filter(l => l.trim());
+              const firstLine = lines[0]?.trim() || '';
               
-              if (hasAddressKeywords || text.split(',').length >= 2 || /\d{5}/.test(text)) {
-                address = text;
-                foundMethod = `button-scan-${i}`;
-                console.log('[DEBUG] Adres bulundu (button scan):', address);
+              if (firstLine.length >= 10 && /\d/.test(firstLine) && !firstLine.includes('Copy')) {
+                address = firstLine;
+                foundMethod = `aria-label-address-${i}`;
+                console.log('[DEBUG] ✅ Adres bulundu (aria-label):', address);
                 break;
               }
             }
+            
+            // Text adres pattern'ine uyuyorsa
+            if (text.length >= 15 && text.length <= 150 && /\d/.test(text)) {
+              // Telefon değil, isim değil
+              if (!text.includes('+') && text !== name) {
+                // Adres kelimeleri içeriyor mu?
+                const hasAddressWord = /straße|strasse|str\.|street|st\.|avenue|ave\.|road|rd\.|platz|weg|sokak|cadde|bulvar/i.test(text);
+                // Veya posta kodu var mı?
+                const hasPostalCode = /\b\d{5}\b/.test(text);
+                // Veya virgülle ayrılmış mı? (Sokak, Şehir)
+                const hasComma = text.includes(',');
+                
+                if (hasAddressWord || hasPostalCode || hasComma) {
+                  address = text.split('\n')[0].trim(); // İlk satırı al
+                  foundMethod = `button-pattern-${i}`;
+                  console.log('[DEBUG] ✅ Adres bulundu (button pattern):', address);
+                  break;
+                }
+              }
+            }
           }
+        } catch (e) {
+          console.log('[DEBUG] Yöntem 3 hata:', e.message);
         }
       }
       
-      // YÖNTEM 5: Tüm div'leri tara (son çare)
+      // YÖNTEM 4: XPath ile adres ikonu olan elementi bul
       if (address === 'Adres bulunamadı') {
-        const allDivs = Array.from(document.querySelectorAll('div'));
-        console.log('[DEBUG] Toplam div sayısı:', allDivs.length);
-        
-        for (let i = 0; i < Math.min(allDivs.length, 500); i++) {
-          const div = allDivs[i];
-          const text = (div.innerText || div.textContent || '').trim();
-          
-          // Sadece görünen ve çok uzun olmayan divler
-          if (text.length >= 10 && text.length <= 200 && /\d/.test(text)) {
-            const lines = text.split('\n').filter(l => l.trim());
-            // Tek satırlık veya 2 satırlık adres
-            if (lines.length <= 2 && /\d/.test(text)) {
-              const hasAddressPattern = /\d+\s+[A-Za-zğüşıöçĞÜŞİÖÇ]/i.test(text) || /\d{5}/.test(text);
-              if (hasAddressPattern && !text.includes('+')) {
-                address = text;
-                foundMethod = `div-scan-${i}`;
-                console.log('[DEBUG] Adres bulundu (div scan):', address);
+        try {
+          // Adres ikonu genelde bir img veya svg içerir
+          const addressIcons = document.querySelectorAll('img[src*="place"], img[src*="pin"], svg[aria-label*="address" i]');
+          for (const icon of addressIcons) {
+            const parent = icon.closest('button') || icon.closest('div');
+            if (parent) {
+              const text = (parent.textContent || '').trim();
+              if (text.length >= 10 && text.length <= 150 && /\d/.test(text) && !text.includes('+')) {
+                address = text.split('\n')[0].trim();
+                foundMethod = 'address-icon';
+                console.log('[DEBUG] ✅ Adres bulundu (icon):', address);
                 break;
               }
             }
           }
+        } catch (e) {
+          console.log('[DEBUG] Yöntem 4 hata:', e.message);
+        }
+      }
+      
+      // YÖNTEM 5: Sayfa HTML'ini tara (son çare)
+      if (address === 'Adres bulunamadı') {
+        try {
+          const bodyText = document.body.innerText;
+          const lines = bodyText.split('\n');
+          
+          for (const line of lines) {
+            const trimmed = line.trim();
+            // Adres pattern'i: 10-100 karakter, rakam içeren, telefon değil
+            if (trimmed.length >= 10 && trimmed.length <= 100 && /\d/.test(trimmed) && !trimmed.includes('+')) {
+              // Posta kodu veya adres kelimesi var mı?
+              const hasPostal = /\b\d{5}\b/.test(trimmed);
+              const hasAddressWord = /straße|strasse|str\.|street|avenue|road|platz|weg|sokak|cadde/i.test(trimmed);
+              const hasComma = trimmed.includes(',');
+              
+              if ((hasPostal || hasAddressWord || hasComma) && trimmed !== name) {
+                address = trimmed;
+                foundMethod = 'body-text-scan';
+                console.log('[DEBUG] ✅ Adres bulundu (body scan):', address);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          console.log('[DEBUG] Yöntem 5 hata:', e.message);
         }
       }
       
@@ -381,7 +413,7 @@ app.post("/scrape", async (req, res) => {
     
     console.log("🏢 İşletme:", businessInfo.name);
     console.log("📍 Adres:", businessInfo.address);
-    console.log("🔍 Adres bulunma yöntemi:", businessInfo.addressMethod);
+    console.log("🔍 Adres yöntemi:", businessInfo.addressMethod);
 
     // ==========================================
     // 5. YORUMLAR SEKMESİNİ AÇ
