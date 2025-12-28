@@ -266,24 +266,21 @@ app.post("/scrape", async (req, res) => {
   // =========================
   // ADRES (ESNEK SELECTOR İLE)
   // =========================
-  let address = 'Adres bulunamadı';
-  const addressSelectors = [
-    'button[data-item-id="address"]',
-    'div[data-item-id="address"]',
-    'span[jsan]',
-    'button[jsaction*="address"]'
-  ];
+  // =========================
+// ADRES (GARANTİLİ - ARIA-LABEL TABANLI)
+// =========================
+let address = 'Adres bulunamadı';
+const rows = Array.from(document.querySelectorAll('button[data-item-id], div[aria-label]'));
 
-  for (let i = 0; i < 5; i++) { // 5 kez dene, sayfa render olabilir
-    for (const sel of addressSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.innerText?.trim()) {
-        address = el.innerText.trim();
-        break;
-      }
-    }
-    if (address !== 'Adres bulunamadı') break;
+for (const el of rows) {
+  const label = (el.getAttribute('aria-label') || '').toLowerCase();
+  const text = el.innerText?.replace(/\n/g, ' ').trim();
+  if ((label.includes('address') || label.includes('adres')) && text && text.length > 10) {
+    address = text;
+    break;
   }
+}
+
 
   return { name, address };
 });
@@ -614,6 +611,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
