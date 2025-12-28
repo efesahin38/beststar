@@ -248,33 +248,73 @@ app.post("/scrape", async (req, res) => {
     );
     await delay(3000);
     
- const businessInfo = await page.evaluate(() => {
+const businessInfo = await page.evaluate(() => {
+  // =========================
+  // İŞLETME ADI
+  // =========================
   let name = 'İşletme adı bulunamadı';
-  const nameSelectors = ['h1 span[jsan]', 'h1.DUwDvf', 'h1'];
+  const nameSelectors = [
+    'h1 span[jsan]', 
+    'h1.DUwDvf', 
+    'h1', 
+    '.x3AX1-LfntMc-header-title-title span',  // Güncel yaygın selector
+    '[data-item-id="title"] span'              // Alternatif
+  ];
   for (const sel of nameSelectors) {
     const el = document.querySelector(sel);
-    if (el?.innerText?.trim()) { name = el.innerText.trim(); break; }
-  }
-
-  let address = 'Adres bulunamadı';
-
-  // 1️⃣ Aria-label ve title kontrolü
-  const possibleLabels = Array.from(document.querySelectorAll('[aria-label], [title]'));
-  for (const el of possibleLabels) {
-    const label = (el.getAttribute('aria-label') || el.getAttribute('title') || '').toLowerCase();
-    const text = el.innerText?.trim() || '';
-    if ((label.includes('address') || label.includes('adres') || label.includes('konum')) && text.length > 10) {
-      address = text;
+    if (el && el.innerText?.trim()) {
+      name = el.innerText.trim();
       break;
     }
   }
 
-  // 2️⃣ Fallback: text ve pattern ile
+  // =========================
+  // ADRES (DAHA GÜVENİLİR YÖNTEM)
+  // =========================
+  let address = 'Adres bulunamadı';
+
+  // 1. En güvenilir: Adres butonu (ikonlu) - aria-label genellikle "Address" veya "Adres" içerir
+  const addressButtons = Array.from(document.querySelectorAll('button[aria-label]'));
+  for (const btn of addressButtons) {
+    const aria = btn.getAttribute('aria-label') || '';
+    if (aria.toLowerCase().includes('address') || aria.toLowerCase().includes('adres')) {
+      const textEl = btn.querySelector('[data-kind="address"] span, span, div');
+      if (textEl && textEl.innerText?.trim().length > 5) {
+        address = textEl.innerText.trim();
+        break;
+      }
+      // Alternatif: butonun kendi içindeki text
+      if (btn.innerText?.trim().length > 10) {
+        address = btn.innerText.trim();
+        break;
+      }
+    }
+  }
+
+  // 2. Fallback: Yaygın adres class'ları (güncel Google Maps'te sık görülenler)
+  if (address === 'Adres bulunamadı') {
+    const fallbackSelectors = [
+      'button[data-item-id="address"] div font > span',  // Çok yaygın
+      '.Io6YTe fontBodyMedium',                         // Adres text class'ı
+      '[data-kind="address"] span',
+      'div[role="region"] button[aria-label*="Address"] ~ div'
+    ];
+    for (const sel of fallbackSelectors) {
+      const el = document.querySelector(sel);
+      if (el && el.innerText?.trim().length > 10) {
+        address = el.innerText.trim();
+        break;
+      }
+    }
+  }
+
+  // 3. Son çare: İçinde sayı ve cadde/sokak kelimeleri geçen uzun text
   if (address === 'Adres bulunamadı') {
     const candidates = Array.from(document.querySelectorAll('span, div, button'));
     for (const el of candidates) {
-      const text = el.innerText?.trim() || '';
-      if (text.length > 10 && /\d{1,4}\s?\w{1,10}\s?\w{1,15}/.test(text)) {
+      const text = el.innerText?.trim();
+      if (text && text.length > 15 && 
+          (text.match(/\d+/) && (text.match(/(Cad|Sk|Sok|Mah|Bul|No)/i) || text.includes(',')))) {
         address = text;
         break;
       }
@@ -283,7 +323,6 @@ app.post("/scrape", async (req, res) => {
 
   return { name, address };
 });
-
 
 
     
@@ -610,6 +649,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
