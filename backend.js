@@ -361,7 +361,7 @@ app.post("/scrape", async (req, res) => {
     let lastReviewCount = 0;
     let sameCountStreak = 0;
     const SAME_LIMIT = 10; // Daha yüksek eşik için güvenilirlik
-    const MAX_SCROLL = 400; // Azaltılmış max iterasyon hafıza için
+    const MAX_SCROLL = 300; // Azaltılmış max iterasyon hafıza için
     const SCROLL_DELAY = 800; // Kısa delay
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { reviews } = await page.evaluate(() => {
@@ -479,5 +479,6 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
