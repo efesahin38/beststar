@@ -47,7 +47,15 @@ app.post("/scrape", async (req, res) => {
     "--disable-background-networking",
     "--disable-sync",
     "--disable-translate",
-    "--disable-background-timer-throttling"
+    "--disable-background-timer-throttling",
+    "--disable-accelerated-2d-canvas",  // 2D rendering'i kapat
+  "--disable-accelerated-video-decode",  // Video decode'u kapat (yorumlarda video olmayacak)
+  "--no-first-run",  // İlk çalıştırma ayarlarını atla
+  "--disable-infobars",  // Info bar'ları kapat
+  "--disable-breakpad",  // Crash reporting'i kapat
+  "--disable-crash-reporter",  // Crash reporter'ı kapat
+  "--disable-features=site-per-process",  // Site isolation'ı kapat (dikkat, güvenlik düşer ama RAM azalır)
+  "--renderer-process-limit=1"
   ],
   ignoreDefaultArgs: ["--enable-automation"], // Fazla yükü azaltır
   dumpio: false
@@ -66,8 +74,6 @@ page.on('request', (req) => {
   if (
     resourceType === 'image' ||
     resourceType === 'media' ||
-    resourceType === 'font' ||
-    resourceType === 'stylesheet' ||
     url.includes('googleusercontent.com') ||  // Profil fotoğrafları
     url.includes('lh3.googleusercontent.com') || // Eski profil foto linkleri
     url.includes('yt3.ggpht.com') // YouTube kanal fotoğrafları (yorumlarda çıkabiliyor)
@@ -661,6 +667,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
