@@ -237,6 +237,10 @@ app.post("/scrape", async (req, res) => {
     // 4. İŞLETME BİLGİLERİNİ AL - DOĞRU ADRES GARANTİLİ
     // ==========================================
     console.log("📋 İşletme bilgileri alınıyor...");
+    await page.waitForSelector(
+  'button[data-item-id="address"], h1.DUwDvf, h1',
+  { timeout: 20000 }
+).catch(() => console.log('⚠️ Detay panel geç yüklendi'));
     
     // İsim için bekle
     await page.waitForSelector('h1.DUwDvf, h1', { timeout: 15000 }).catch(() => 
@@ -249,41 +253,43 @@ app.post("/scrape", async (req, res) => {
   // İŞLETME ADI
   // =========================
   let name = 'İşletme adı bulunamadı';
-
-  const nameSelectors = [
-    'h1.DUwDvf',
-    'h1.DUwDvf.lfPIob',
-    'h1'
-  ];
+  const nameSelectors = ['h1.DUwDvf', 'h1.DUwDvf.lfPIob', 'h1'];
 
   for (const sel of nameSelectors) {
     const el = document.querySelector(sel);
-    if (el && el.innerText && el.innerText.trim().length > 0) {
+    if (el && el.innerText?.trim()) {
       name = el.innerText.trim();
       break;
     }
   }
 
   // =========================
-  // ADRES (SADECE GERÇEK KAYNAK)
+  // ADRES (TEKRAR DENEMELİ – GARANTİLİ)
   // =========================
   let address = 'Adres bulunamadı';
 
-  const addressBtn = document.querySelector('button[data-item-id="address"]');
-  if (addressBtn && addressBtn.innerText) {
-    address = addressBtn.innerText.trim();
+  const tryGetAddress = () => {
+    const btn = document.querySelector('button[data-item-id="address"]');
+    return btn?.innerText?.trim() || null;
+  };
+
+  // 3 kez dene (Maps geç render ediyor)
+  for (let i = 0; i < 3; i++) {
+    const found = tryGetAddress();
+    if (found) {
+      address = found;
+      break;
+    }
   }
 
-  return {
-    name,
-    address
-  };
+  return { name, address };
 });
+
 
     
     console.log("🏢 İşletme:", businessInfo.name);
     console.log("📍 Adres:", businessInfo.address);
-    console.log("🔍 Adres yöntemi:", businessInfo.addressMethod);
+    
 
     // ==========================================
     // 5. YORUMLAR SEKMESİNİ AÇ
@@ -604,4 +610,5 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
