@@ -248,12 +248,12 @@ app.post("/scrape", async (req, res) => {
     );
     await delay(3000);
     
-   const businessInfo = await page.evaluate(() => {
+  const businessInfo = await page.evaluate(() => {
   // =========================
   // İŞLETME ADI
   // =========================
   let name = 'İşletme adı bulunamadı';
-  const nameSelectors = ['h1.DUwDvf', 'h1.DUwDvf.lfPIob', 'h1'];
+  const nameSelectors = ['h1 span[jsan]', 'h1.DUwDvf', 'h1'];
 
   for (const sel of nameSelectors) {
     const el = document.querySelector(sel);
@@ -264,26 +264,30 @@ app.post("/scrape", async (req, res) => {
   }
 
   // =========================
-  // ADRES (TEKRAR DENEMELİ – GARANTİLİ)
+  // ADRES (ESNEK SELECTOR İLE)
   // =========================
   let address = 'Adres bulunamadı';
+  const addressSelectors = [
+    'button[data-item-id="address"]',
+    'div[data-item-id="address"]',
+    'span[jsan]',
+    'button[jsaction*="address"]'
+  ];
 
-  const tryGetAddress = () => {
-    const btn = document.querySelector('button[data-item-id="address"]');
-    return btn?.innerText?.trim() || null;
-  };
-
-  // 3 kez dene (Maps geç render ediyor)
-  for (let i = 0; i < 3; i++) {
-    const found = tryGetAddress();
-    if (found) {
-      address = found;
-      break;
+  for (let i = 0; i < 5; i++) { // 5 kez dene, sayfa render olabilir
+    for (const sel of addressSelectors) {
+      const el = document.querySelector(sel);
+      if (el && el.innerText?.trim()) {
+        address = el.innerText.trim();
+        break;
+      }
     }
+    if (address !== 'Adres bulunamadı') break;
   }
 
   return { name, address };
 });
+
 
 
     
@@ -610,5 +614,6 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
