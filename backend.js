@@ -361,8 +361,8 @@ app.post("/scrape", async (req, res) => {
     let lastReviewCount = 0;
     let sameCountStreak = 0;
     const SAME_LIMIT = 10; // Daha yüksek eşik için güvenilirlik
-    const MAX_SCROLL = 300; // Azaltılmış max iterasyon hafıza için
-    const SCROLL_DELAY = 800; // Kısa delay
+    const MAX_SCROLL = 200; // Azaltılmış max iterasyon hafıza için
+    const SCROLL_DELAY = 600; // Kısa delay
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { reviews } = await page.evaluate(() => {
         const container = document.querySelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf') ||
@@ -479,6 +479,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
