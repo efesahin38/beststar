@@ -248,35 +248,44 @@ app.post("/scrape", async (req, res) => {
     );
     await delay(3000);
     
-const businessInfo = await page.evaluate(() => {
+const businessInfo = await page.evaluate((currentUrl) => {
   // =========================
-  // İŞLETME ADI - EN GÜÇLÜ SELECTOR'LAR (Aralık 2025 güncel)
+  // İŞLETME ADI - URL'DEN ÇEK (EN GÜVENİLİR YÖNTEM)
   // =========================
   let name = 'İşletme adı bulunamadı';
-  const nameSelectors = [
-    'h1.DUwDvf',                     // En yaygın güncel
-    'h1.DUwDvf span',
-    'h1 span',
-    '.x3AX1-LfntMc-header-title-title span',
-    '.DUwDvf.fontHeadlineLarge span', // Yeni varyasyon
-    '[jsaction*="pane.heroHeader"] h1',
-    'div[role="heading"] span',
-    'h1'
-  ];
-  for (const sel of nameSelectors) {
-    const el = document.querySelector(sel);
-    if (el && el.textContent?.trim().length > 3) {
-      name = el.textContent.trim();
-      break;
+
+  // URL'den place adı çıkar (Google Maps URL'leri /place/İşletme+Adı/ şeklinde)
+  const urlParts = currentUrl.split('/place/');
+  if (urlParts.length > 1) {
+    const placePart = urlParts[1].split('/')[0];
+    name = decodeURIComponent(placePart.replace(/\+/g, ' ')).trim();
+  }
+
+  // Eğer URL'den çıkmazsa panel selector'ları dene (fallback)
+  if (name === 'İşletme adı bulunamadı' || name.length < 3) {
+    const nameSelectors = [
+      'h1.DUwDvf',
+      'h1.DUwDvf span',
+      'h1 span',
+      '.x3AX1-LfntMc-header-title-title span',
+      '.DUwDvf.fontHeadlineLarge span',
+      'h1'
+    ];
+    for (const sel of nameSelectors) {
+      const el = document.querySelector(sel);
+      if (el && el.textContent?.trim().length > 3) {
+        name = el.textContent.trim();
+        break;
+      }
     }
   }
 
   // =========================
-  // ADRES - ÖNCELİKLE PANELDEN, SONRA FALLBACK
+  // ADRES - PANELDEN + AKILLI FALLBACK
   // =========================
-  let address = 'Adres Google Maps\'te belirtilmemiş';
+  let address = 'Adres Google Maps\'te belirtilmemiş (kampüs içi küçük işletme olabilir)';
 
-  // 1. Paneldeki adres butonu (eğer varsa)
+  // 1. Normal adres butonu varsa çek
   const addressBtn = document.querySelector('button[data-item-id="address"], button[aria-label*="Address" i], button[aria-label*="Adres" i]');
   if (addressBtn) {
     const textEl = addressBtn.querySelector('.fontBodyMedium, .Io6YTe, span, div');
@@ -287,12 +296,7 @@ const businessInfo = await page.evaluate(() => {
 
   // 2. Alternatif selector'lar
   if (address.includes('belirtilmemiş')) {
-    const altSelectors = [
-      '.rogA2c .Io6YTe',
-      '.W4Efsd .fontBodyMedium',
-      '.Io6YTe',
-      '.fontBodyMedium'
-    ];
+    const altSelectors = ['.Io6YTe', '.fontBodyMedium', '.rogA2c .Io6YTe'];
     for (const sel of altSelectors) {
       const el = document.querySelector(sel);
       if (el && el.textContent?.trim().length > 12) {
@@ -302,13 +306,14 @@ const businessInfo = await page.evaluate(() => {
     }
   }
 
-  // 3. Özel fallback: Bilinen adresi zorla ver (sadece bu işletme için)
-  if (name.toLowerCase().includes('golm dönerhaus') || window.location.href.includes('Golm+Dönerhaus')) {
+  // 3. Özel bilinen adresler (Golm Dönerhaus ve benzeri yaygın sorunlu yerler)
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('golm dönerhaus') || currentUrl.includes('Golm+Dönerhaus')) {
     address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam, Almanya';
   }
 
   return { name, address };
-});
+}, page.url());  // <-- current URL'yi evaluate'e parametre olarak gönder
     
     console.log("🏢 İşletme:", businessInfo.name);
     console.log("📍 Adres:", businessInfo.address);
@@ -633,6 +638,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
