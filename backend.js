@@ -29,7 +29,6 @@ app.post("/scrape", async (req, res) => {
   try {
     console.log(`🔎 "${business}" aranıyor...`);
 
-    // Render.com 512MB optimizasyonu
     browser = await puppeteer.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium-browser",
@@ -39,14 +38,11 @@ app.post("/scrape", async (req, res) => {
         "--disable-dev-shm-usage",
         "--disable-gpu",
         "--disable-software-rasterizer",
-        "--disable-extensions",
         "--disable-blink-features=AutomationControlled",
-        "--window-size=1024,768",
+        "--window-size=1280,800",
         "--single-process",
         "--no-zygote",
-        "--disable-accelerated-2d-canvas",
-        "--memory-pressure-off",
-        "--max-old-space-size=384", // 512MB'nin %75'i
+        "--max-old-space-size=384",
         "--lang=tr-TR,tr",
         "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
       ],
@@ -55,16 +51,14 @@ app.post("/scrape", async (req, res) => {
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(120000);
-    await page.setViewport({ width: 1024, height: 768 });
+    await page.setViewport({ width: 1280, height: 800 });
 
-    // Anti-detection
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
       Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
       Object.defineProperty(navigator, 'languages', { get: () => ['tr-TR', 'tr'] });
     });
 
-    // Cookie consent bypass
     await page.setCookie({
       name: 'CONSENT',
       value: 'YES+cb.20210720-07-p0.tr+FX+410',
@@ -79,7 +73,7 @@ app.post("/scrape", async (req, res) => {
     await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
     await delay(8000);
 
-    // 2. Cookie consent kontrolü
+    // 2. Cookie consent
     let currentUrl = page.url();
     if (currentUrl.includes('consent.google.com')) {
       console.log("🍪 Consent bypass...");
@@ -105,87 +99,171 @@ app.post("/scrape", async (req, res) => {
 
     console.log("✅ Maps sayfasındayız");
 
-    // 3. İşletme kartını bul - GÜVENİLİR YÖNTEM
+    // 3. Sayfa analizi
+    console.log("🔍 Sayfa yapısı analiz ediliyor...");
+    const pageAnalysis = await page.evaluate(() => {
+      return {
+        url: window.location.href,
+        placeLinks: document.querySelectorAll('a[href*="/maps/place/"]').length,
+        hfpxzc: document.querySelectorAll('.hfpxzc').length,
+        cards: document.querySelectorAll('div[role="article"]').length
+      };
+    });
+    console.log("📊 Sayfa Analizi:", JSON.stringify(pageAnalysis, null, 2));
+
+    // 4. İşletme kartını bul - ÇOKLU STRATEJİ
     console.log("🎯 İşletme kartı aranıyor...");
     let placeFound = false;
 
-    // Önce kesin place link bekle (büyük işletmeler için kritik)
-    try {
-      console.log("⏳ Place link bekleniyor (max 60 saniye)...");
-      await page.waitForSelector('a[href*="/maps/place/"]', { timeout: 60000 });
-      
-      const placeLinks = await page.$$('a[href*="/maps/place/"]');
-      console.log(`✅ ${placeLinks.length} place link bulundu`);
+    // STRATEJİ 1: Place link bekle ve tıkla (kısa timeout)
+    if (!placeFound) {
+      try {
+        console.log("📍 Strateji 1: Place link (20 saniye)...");
+        await page.waitForSelector('a[href*="/maps/place/"]', { timeout: 20000 });
+        const placeLinks = await page.$$('a[href*="/maps/place/"]');
+        console.log(`✅ ${placeLinks.length} place link bulundu`);
+        
+        if (placeLinks.length > 0) {
+          // İlk 3 linki kontrol et
+          const businessLower = business.toLowerCase();
+          let bestMatch = 0;
+          let bestScore = 0;
 
-      if (placeLinks.length > 0) {
-        // İlk 3 linki kontrol et, en iyi eşleşeni bul
-        const businessLower = business.toLowerCase();
-        let bestMatch = null;
-        let bestScore = 0;
-
-        for (let i = 0; i < Math.min(3, placeLinks.length); i++) {
-          const linkInfo = await page.evaluate(el => ({
-            text: (el.textContent || '').trim().toLowerCase(),
-            href: el.href
-          }), placeLinks[i]);
-
-          // Basit eşleşme skoru
-          const words = businessLower.split(' ').filter(w => w.length > 2);
-          let score = 0;
-          words.forEach(word => {
-            if (linkInfo.text.includes(word)) score++;
-          });
-
-          console.log(`🔍 Link ${i}: "${linkInfo.text.substring(0, 40)}" - Skor: ${score}`);
-
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = i;
+          for (let i = 0; i < Math.min(3, placeLinks.length); i++) {
+            const linkText = await page.evaluate(el => 
+              (el.textContent || '').trim().toLowerCase().substring(0, 50), 
+              placeLinks[i]
+            );
+            
+            const words = businessLower.split(' ').filter(w => w.length > 2);
+            let score = words.filter(word => linkText.includes(word)).length;
+            
+            if (score > bestScore) {
+              bestScore = score;
+              bestMatch = i;
+            }
           }
+
+          console.log(`📌 En iyi eşleşme: index ${bestMatch}`);
+          await placeLinks[bestMatch].click();
+          console.log("✅ Link tıklandı");
+          placeFound = true;
+          await delay(4000);
+          await page.waitForNavigation({ timeout: 15000 }).catch(() => {});
+          await delay(3000);
         }
-
-        // En iyi eşleşeni tıkla
-        const linkToClick = bestMatch !== null ? placeLinks[bestMatch] : placeLinks[0];
-        await linkToClick.click();
-        console.log(`✅ Link tıklandı (index: ${bestMatch !== null ? bestMatch : 0})`);
-        placeFound = true;
-        await delay(5000);
-
-        // Navigation bekle
-        await page.waitForNavigation({ timeout: 15000 }).catch(() => {});
-        await delay(3000);
+      } catch (e) {
+        console.log("⚠️ Strateji 1 başarısız");
       }
-    } catch (e) {
-      console.log("⚠️ Place link bulunamadı:", e.message);
     }
 
-    // Alternatif: Direkt URL'ye git
+    // STRATEJİ 2: Kart selectors ile tıkla
     if (!placeFound) {
-      console.log("🔄 Direkt URL stratejisi...");
-      const placeUrl = await page.evaluate(() => {
-        const link = document.querySelector('a[href*="/maps/place/"]');
-        return link ? link.href : null;
-      });
-      
-      if (placeUrl) {
-        console.log(`🔗 URL'ye gidiliyor: ${placeUrl.substring(0, 80)}...`);
-        await page.goto(placeUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
-        placeFound = true;
-        await delay(6000);
+      try {
+        console.log("📍 Strateji 2: Kart selectors...");
+        const cardSelectors = [
+          '.hfpxzc',
+          '.Nv2PK',
+          'div[role="article"]',
+          '.qBF1Pd',
+          'a.hfpxzc'
+        ];
+        
+        for (const selector of cardSelectors) {
+          const cards = await page.$$(selector);
+          if (cards.length > 0) {
+            console.log(`✅ ${selector}: ${cards.length} kart bulundu`);
+            const cardText = await page.evaluate(el => 
+              (el.textContent || '').trim().toLowerCase().substring(0, 50), 
+              cards[0]
+            );
+            
+            if (cardText.includes(business.toLowerCase().substring(0, 8))) {
+              await cards[0].click();
+              console.log(`✅ Kart tıklandı (${selector})`);
+              placeFound = true;
+              await delay(4000);
+              break;
+            }
+          }
+        }
+      } catch (e) {
+        console.log("⚠️ Strateji 2 başarısız");
+      }
+    }
+
+    // STRATEJİ 3: Direkt URL'ye git
+    if (!placeFound) {
+      try {
+        console.log("📍 Strateji 3: Direkt URL...");
+        const placeUrl = await page.evaluate(() => {
+          const link = document.querySelector('a[href*="/maps/place/"]');
+          return link ? link.href : null;
+        });
+        
+        if (placeUrl) {
+          console.log(`🔗 URL'ye gidiliyor...`);
+          await page.goto(placeUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
+          placeFound = true;
+          await delay(6000);
+        }
+      } catch (e) {
+        console.log("⚠️ Strateji 3 başarısız");
+      }
+    }
+
+    // STRATEJİ 4: Arama çubuğuna tekrar yaz
+    if (!placeFound) {
+      try {
+        console.log("📍 Strateji 4: Arama çubuğu reset...");
+        const searchInput = await page.$('input#searchboxinput');
+        if (searchInput) {
+          await searchInput.click({ clickCount: 3 });
+          await page.keyboard.press('Backspace');
+          await delay(500);
+          await searchInput.type(business, { delay: 100 });
+          await page.keyboard.press('Enter');
+          await delay(8000);
+          
+          await page.waitForSelector('a[href*="/maps/place/"]', { timeout: 15000 });
+          const placeLinks = await page.$$('a[href*="/maps/place/"]');
+          if (placeLinks.length > 0) {
+            await placeLinks[0].click();
+            placeFound = true;
+            await delay(4000);
+          }
+        }
+      } catch (e) {
+        console.log("⚠️ Strateji 4 başarısız");
+      }
+    }
+
+    // STRATEJİ 5: Koordinat tıklama
+    if (!placeFound) {
+      try {
+        console.log("📍 Strateji 5: Koordinat tıklama...");
+        await page.mouse.click(350, 350);
+        await delay(4000);
+        if (page.url().includes('/maps/place/')) {
+          console.log("✅ Koordinat başarılı");
+          placeFound = true;
+        }
+      } catch (e) {
+        console.log("⚠️ Strateji 5 başarısız");
       }
     }
 
     if (!placeFound) {
       console.log("❌ İşletme kartı bulunamadı!");
       return res.json({ 
-        error: "İşletme kartı bulunamadı. İşletme adını daha spesifik girin (örn: şehir ekleyin).",
-        suggestion: "Örnek: 'İşletme Adı + Şehir'"
+        error: "İşletme bulunamadı. İşletme adını şehir ile birlikte deneyin.",
+        debug: pageAnalysis
       });
     }
 
-    console.log("🎉 İşletme kartı başarıyla açıldı!");
+    console.log("🎉 İşletme kartı açıldı!");
 
-    // 4. İşletme bilgilerini al
+    // 5. İşletme bilgilerini al
     console.log("📋 İşletme bilgileri alınıyor...");
     await page.waitForSelector('h1.DUwDvf, h1', { timeout: 15000 }).catch(() => {});
     
@@ -196,14 +274,14 @@ app.post("/scrape", async (req, res) => {
       const addressSelectors = [
         'button[data-item-id*="address"]',
         'div[aria-label*="Adres"]',
-        'button[data-tooltip*="Adres"]',
         '.rogA2c',
-        '[data-item-id="address"]'
+        '[data-item-id="address"]',
+        'button[data-tooltip*="address" i]'
       ];
       
       for (const sel of addressSelectors) {
         const el = document.querySelector(sel);
-        if (el && el.innerText) {
+        if (el && el.innerText && el.innerText.trim().length > 5) {
           address = el.innerText.trim();
           break;
         }
@@ -215,7 +293,7 @@ app.post("/scrape", async (req, res) => {
     console.log("🏢 İşletme:", businessInfo.name);
     console.log("📍 Adres:", businessInfo.address);
 
-    // 5. Yorumlar sekmesini aç
+    // 6. Yorumlar sekmesini aç
     console.log("💬 Yorumlar sekmesi açılıyor...");
     await delay(2000);
     
@@ -226,7 +304,8 @@ app.post("/scrape", async (req, res) => {
       'button.hh2c6',
       'button[data-tab-index="1"]',
       'div.F7nice button',
-      'button.HHrUdb'
+      'button.HHrUdb',
+      'button[aria-label*="Bewertung" i]'
     ];
     
     let reviewsOpened = false;
@@ -246,36 +325,45 @@ app.post("/scrape", async (req, res) => {
       return res.json({ error: "Yorumlar sekmesi açılamadı." });
     }
 
-    // 6. Sıralama - En düşük puanlı
+    // 7. Sıralama - En düşük puanlı
     console.log("⭐ Sıralama ayarlanıyor...");
     await delay(1500);
     
     try {
-      const sortBtn = await page.$('button[aria-label*="sırala" i], button[aria-label*="sort" i]');
+      const sortBtn = await page.$('button[aria-label*="sırala" i], button[aria-label*="sort" i], button[aria-label*="sortier" i]');
       if (sortBtn) {
         await sortBtn.click();
         await delay(1000);
         
-        // En düşük puanlı seç
-        const lowestOption = await page.$('[data-index="1"], div[role="menuitemradio"]:nth-child(2)');
-        if (lowestOption) {
-          await lowestOption.click();
-          console.log("✅ En düşük puanlı seçildi");
-          await delay(2500);
+        const lowestSelectors = [
+          '[data-index="1"]',
+          'div[role="menuitemradio"]:nth-child(2)',
+          '[data-value="qualityScore"]'
+        ];
+        
+        for (const sel of lowestSelectors) {
+          const option = await page.$(sel);
+          if (option) {
+            await option.click();
+            console.log("✅ En düşük puanlı seçildi");
+            await delay(2500);
+            break;
+          }
         }
       }
     } catch (e) {
       console.log("⚠️ Sıralama yapılamadı");
     }
 
-    // 7. AKILLI SCROLL - 3 yıldız bulunca dur
+    // 8. AKILLI SCROLL - 3 yıldız bulunca 1 scroll daha yap ve dur
     console.log("📜 Akıllı scroll başlatılıyor...");
     
     let threeStarFound = false;
+    let extraScrollDone = false;
     let scrollCount = 0;
     let lastReviewCount = 0;
     let stableCount = 0;
-    const MAX_SCROLL = 150; // Güvenlik limiti
+    const MAX_SCROLL = 120;
     
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { reviews, hasThreeStar } = await page.evaluate(() => {
@@ -287,10 +375,8 @@ app.post("/scrape", async (req, res) => {
         
         container.scrollTop = container.scrollHeight;
         
-        // Yorum sayısı
         const reviewElements = document.querySelectorAll('[data-review-id], .jftiEf');
         
-        // 3 yıldız var mı kontrol
         let hasThree = false;
         reviewElements.forEach(card => {
           const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
@@ -312,9 +398,14 @@ app.post("/scrape", async (req, res) => {
       }
       
       // 3 yıldız bulunduysa ve 1 scroll daha yaptıysa DUR
-      if (threeStarFound) {
+      if (threeStarFound && extraScrollDone) {
         console.log("🛑 3 yıldız sonrası 1 scroll tamamlandı, durduruluyor");
         break;
+      }
+      
+      // Ekstra scroll tracker
+      if (threeStarFound) {
+        extraScrollDone = true;
       }
       
       // Yorum sayısı değişmedi mi?
@@ -326,23 +417,23 @@ app.post("/scrape", async (req, res) => {
       lastReviewCount = reviews;
       
       // Log
-      if (i % 15 === 0) {
+      if (i % 10 === 0) {
         console.log(`📊 Scroll ${i} | Yorum: ${reviews} | Sabit: ${stableCount}`);
       }
       
-      // Yorum artmıyorsa ve en az 30 yorum varsa dur
-      if (stableCount >= 8 && reviews > 30) {
+      // Yorum artmıyorsa ve en az 20 yorum varsa dur
+      if (stableCount >= 8 && reviews > 20) {
         console.log("🛑 Yorum sayısı artmıyor, durduruluyor");
         break;
       }
       
-      await delay(700 + Math.random() * 300);
+      await delay(650 + Math.random() * 250);
     }
     
     console.log(`✅ Scroll tamamlandı (${scrollCount} iterasyon) | Son yorum: ${lastReviewCount}`);
     await delay(2000);
 
-    // 8. Yorumları çek - SADECE 1 ve 2 yıldız
+    // 9. Yorumları çek - SADECE 1 ve 2 yıldız
     console.log("🔍 1 ve 2 yıldızlı yorumlar parse ediliyor...");
     
     const reviews = await page.evaluate(() => {
@@ -351,9 +442,8 @@ app.post("/scrape", async (req, res) => {
       
       const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf'));
       
-      // Önce "daha fazla" butonlarını tıkla (sadece 1-2 yıldızlılar için)
+      // Önce "daha fazla" butonlarını tıkla
       reviewElements.forEach(card => {
-        // Yıldızı kontrol et
         const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
         if (!starEl) return;
         
@@ -361,7 +451,6 @@ app.post("/scrape", async (req, res) => {
         if (!match) return;
         const rating = parseInt(match[1]);
         
-        // Sadece 1-2 yıldız için expand
         if (rating <= 2) {
           const expandBtns = card.querySelectorAll('button[aria-label*="daha" i], button[aria-label*="more" i], button.w8nwRe');
           expandBtns.forEach(btn => {
@@ -373,7 +462,6 @@ app.post("/scrape", async (req, res) => {
       // Parse
       reviewElements.forEach(card => {
         try {
-          // Yıldız
           let rating = null;
           const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
           if (starEl) {
@@ -381,27 +469,22 @@ app.post("/scrape", async (req, res) => {
             if (match) rating = parseInt(match[1]);
           }
           
-          // SADECE 1 ve 2 yıldız
           if (!rating || rating > 2) return;
           
-          // Metin
           let text = '';
           const textEl = card.querySelector('.wiI7pd, span[data-expandable-section], .MyEned');
           if (textEl) text = textEl.textContent?.trim() || '';
           
-          // Yazar
           let author = 'Anonim';
           const authorEl = card.querySelector('.d4r55');
           if (authorEl) {
             author = authorEl.textContent?.trim().split('·')[0].trim() || 'Anonim';
           }
           
-          // Tarih
           let date = '';
           const dateEl = card.querySelector('.rsqaWe');
           if (dateEl) date = dateEl.textContent?.trim() || '';
           
-          // Hash ile unique
           const hash = `${rating}|${author}|${text.substring(0, 50)}`;
           if (seenHashes.has(hash)) return;
           seenHashes.add(hash);
@@ -421,7 +504,6 @@ app.post("/scrape", async (req, res) => {
 
     console.log(`✅ Toplam ${reviews.length} adet 1-2 yıldızlı yorum çekildi`);
 
-    // İstatistikler
     const oneStar = reviews.filter(r => r.rating === 1);
     const twoStar = reviews.filter(r => r.rating === 2);
 
