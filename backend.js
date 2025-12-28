@@ -248,39 +248,38 @@ app.post("/scrape", async (req, res) => {
     );
     await delay(3000);
     
-  const businessInfo = await page.evaluate(() => {
-  // =========================
-  // İŞLETME ADI
-  // =========================
+ const businessInfo = await page.evaluate(() => {
   let name = 'İşletme adı bulunamadı';
   const nameSelectors = ['h1 span[jsan]', 'h1.DUwDvf', 'h1'];
-
   for (const sel of nameSelectors) {
     const el = document.querySelector(sel);
-    if (el && el.innerText?.trim()) {
-      name = el.innerText.trim();
+    if (el?.innerText?.trim()) { name = el.innerText.trim(); break; }
+  }
+
+  let address = 'Adres bulunamadı';
+
+  // 1️⃣ Aria-label ve title kontrolü
+  const possibleLabels = Array.from(document.querySelectorAll('[aria-label], [title]'));
+  for (const el of possibleLabels) {
+    const label = (el.getAttribute('aria-label') || el.getAttribute('title') || '').toLowerCase();
+    const text = el.innerText?.trim() || '';
+    if ((label.includes('address') || label.includes('adres') || label.includes('konum')) && text.length > 10) {
+      address = text;
       break;
     }
   }
 
-  // =========================
-  // ADRES (ESNEK SELECTOR İLE)
-  // =========================
-  // =========================
-// ADRES (GARANTİLİ - ARIA-LABEL TABANLI)
-// =========================
-let address = 'Adres bulunamadı';
-const rows = Array.from(document.querySelectorAll('button[data-item-id], div[aria-label]'));
-
-for (const el of rows) {
-  const label = (el.getAttribute('aria-label') || '').toLowerCase();
-  const text = el.innerText?.replace(/\n/g, ' ').trim();
-  if ((label.includes('address') || label.includes('adres')) && text && text.length > 10) {
-    address = text;
-    break;
+  // 2️⃣ Fallback: text ve pattern ile
+  if (address === 'Adres bulunamadı') {
+    const candidates = Array.from(document.querySelectorAll('span, div, button'));
+    for (const el of candidates) {
+      const text = el.innerText?.trim() || '';
+      if (text.length > 10 && /\d{1,4}\s?\w{1,10}\s?\w{1,15}/.test(text)) {
+        address = text;
+        break;
+      }
+    }
   }
-}
-
 
   return { name, address };
 });
@@ -611,6 +610,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
