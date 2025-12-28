@@ -250,75 +250,92 @@ app.post("/scrape", async (req, res) => {
     
 const businessInfo = await page.evaluate(() => {
   // =========================
-  // İŞLETME ADI (Güncel selector'lar ekledim)
+  // İŞLETME ADI
   // =========================
   let name = 'İşletme adı bulunamadı';
   const nameSelectors = [
-    'h1 span[jsan]', 
-    'h1.DUwDvf', 
+    'h1.DUwDvf span',
+    'h1 span',
+    '.x3AX1-LfntMc-header-title-title span',
     'h1',
-    '.x3AX1-LfntMc-header-title-title span',  // Çok yaygın güncel
-    '[data-item-id="title"] span'
+    '[jsan="7.DUwDvf,0.innerText"]'
   ];
   for (const sel of nameSelectors) {
     const el = document.querySelector(sel);
-    if (el && el.innerText?.trim()) {
-      name = el.innerText.trim();
+    if (el && el.textContent?.trim()) {
+      name = el.textContent.trim();
       break;
     }
   }
 
   // =========================
-  // ADRES (EN GÜVENİLİR YÖNTEMLER ÖNCE)
+  // ADRES - YENİ GÜVENİLİR STRATEJİLER (2025)
   // =========================
   let address = 'Adres bulunamadı';
 
-  // 1. Adres butonu: aria-label "Address" veya "Adres" içeren button
-  const addressButtons = Array.from(document.querySelectorAll('button[aria-label]'));
-  for (const btn of addressButtons) {
-    const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
-    if (aria.includes('address') || aria.includes('adres')) {
-      // Buton içindeki text (genellikle .Io6YTe class'lı)
-      const textEl = btn.querySelector('.Io6YTe, span, div');
-      if (textEl && textEl.innerText?.trim().length > 10) {
-        address = textEl.innerText.trim();
-        break;
-      }
-      // Alternatif: butonun kendi text'i
-      if (btn.innerText?.trim().length > 10) {
-        address = btn.innerText.trim();
-        break;
-      }
-    }
-  }
+  // 1. En güncel ve en sık çalışan: Adres ikonunun yanındaki metin
+  const addressCandidates = [
+    // Yeni yapı: Adres genellikle bir button içinde, data-item-id="address" veya aria-label içeriyor
+    'button[data-item-id="address"] .fontBodyMedium',
+    'button[data-item-id="address"] [class*="fontBody"]',
+    'button[data-item-id="address"] .Io6YTe',
+    'button[data-item-id="address"] span',
 
-  // 2. Yaygın class selector'lar (2024-2025'te sık görülen)
-  if (address === 'Adres bulunamadı') {
-    const directSelectors = [
-      'button[data-item-id="address"] .Io6YTe',
-      'button[data-item-id="address"] span',
-      '.Io6YTe',                                // Direkt adres text class'ı
-      '[data-kind="address"] span',
-      '.QSFF4-text.gm2-body-2'                  // Eski ama hala çalışan
-    ];
-    for (const sel of directSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.innerText?.trim().length > 10) {
-        address = el.innerText.trim();
-        break;
-      }
-    }
-  }
+    // Aria-label ile adres içeren butonun içindeki text
+    'button[aria-label*="Adres" i] .Io6YTe',
+    'button[aria-label*="Adres" i] .fontBodyMedium',
+    'button[aria-label*="Address" i] .fontBodyMedium',
+    'button[aria-label*="Adresse" i] .fontBodyMedium',
 
-  // 3. SON ÇARE: Sadece adres butonu içindeki uzun text (yorumları önlemek için)
-  if (address === 'Adres bulunamadı') {
-    const allButtons = Array.from(document.querySelectorAll('button'));
-    for (const btn of allButtons) {
-      const text = btn.innerText?.trim();
-      if (text && text.length > 15 && text.match(/\d{1,5}.*,.*\d{5}/)) {  // Tipik adres: sayı + virgül + posta kodu
+    // Direkt class ile adres metni
+    '.Io6YTe',
+    '.W4Efsd:last-child .fontBodyMedium', // Çok sık görülüyor
+    '[data-kind="address"] .fontBodyMedium',
+    '.rogA2c .Io6YTe',
+
+    // Son çare: Tüm butonları tara, içinde tipik adres pattern'i olanı bul (sokak no + şehir + posta kodu)
+    // Bu çok etkili oluyor
+  ];
+
+  // Önce direkt selector'larla dene
+  for (const sel of addressCandidates.slice(0, -1)) { // sonuncuyu hariç tut, o özel
+    const elements = document.querySelectorAll(sel);
+    for (const el of elements) {
+      const text = el.textContent?.trim();
+      if (text && text.length > 12 && (text.includes(',') || text.match(/\d{5}/))) { // Türkiye için posta kodu veya virgül
         address = text;
-        break;
+        return { name, address }; // Erken çıkış, bulduysa hemen dön
       }
+    }
+  }
+
+  // SON ÇARE: Tüm butonları tara, adres gibi görüneni seç
+  const allButtons = document.querySelectorAll('button');
+  for (const btn of allButtons) {
+    const aria = btn.getAttribute('aria-label') || '';
+    if (aria.toLowerCase().includes('adres') || aria.toLowerCase().includes('address')) {
+      const innerTexts = Array.from(btn.querySelectorAll('span, div'))
+        .map(e => e.textContent?.trim())
+        .filter(t => t && t.length > 10);
+
+      if (innerTexts.length > 0) {
+        // En uzun ve adres gibi görüneni seç
+        address = innerTexts.sort((a, b) => b.length - a.length)[0];
+        if (address.length > 15) {
+          break;
+        }
+      }
+    }
+  }
+
+  // Eğer hâlâ bulamadıysa, paneldeki tüm uzun metinlerden adres pattern'i ara
+  if (address === 'Adres bulunamadı') {
+    const allTexts = Array.from(document.querySelectorAll('.fontBodyMedium, .Io6YTe, span, div'))
+      .map(el => el.textContent?.trim())
+      .filter(t => t && t.length > 15 && (t.includes(',') || t.match(/\d{5}/)));
+
+    if (allTexts.length > 0) {
+      address = allTexts[0];
     }
   }
 
@@ -649,6 +666,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
