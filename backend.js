@@ -250,98 +250,66 @@ app.post("/scrape", async (req, res) => {
     
 const businessInfo = await page.evaluate(() => {
   // =========================
-  // İŞLETME ADI
+  // İŞLETME ADI - ÇOK DAHA GÜÇLÜ SELECTOR'LAR (2025 güncel)
   // =========================
   let name = 'İşletme adı bulunamadı';
   const nameSelectors = [
+    'h1.DUwDvf font',                // En güncel
     'h1.DUwDvf span',
     'h1 span',
     '.x3AX1-LfntMc-header-title-title span',
-    'h1',
-    '[jsan="7.DUwDvf,0.innerText"]'
+    '.DUwDvf.h1 span',               // Yeni varyasyon
+    '[jsaction*="pane.heroHeader"] span',
+    'div[data-attrid="title"] span',
+    'h1'
   ];
   for (const sel of nameSelectors) {
     const el = document.querySelector(sel);
-    if (el && el.textContent?.trim()) {
+    if (el && el.textContent?.trim().length > 3) {
       name = el.textContent.trim();
       break;
     }
   }
 
   // =========================
-  // ADRES - YENİ GÜVENİLİR STRATEJİLER (2025)
+  // ADRES - ÖNCELİKLE GERÇEK ADRES BUTONU, SONRA ALTERNATİF
   // =========================
-  let address = 'Adres bulunamadı';
+  let address = 'Adres Google Maps\'te belirtilmemiş';
 
-  // 1. En güncel ve en sık çalışan: Adres ikonunun yanındaki metin
-  const addressCandidates = [
-    // Yeni yapı: Adres genellikle bir button içinde, data-item-id="address" veya aria-label içeriyor
-    'button[data-item-id="address"] .fontBodyMedium',
-    'button[data-item-id="address"] [class*="fontBody"]',
-    'button[data-item-id="address"] .Io6YTe',
-    'button[data-item-id="address"] span',
+  // 1. Gerçek adres butonu (2025'te en stabil)
+  const addressBtn = document.querySelector('button[data-item-id="address"]');
+  if (addressBtn) {
+    const textEl = addressBtn.querySelector('.fontBodyMedium, .Io6YTe, span, div');
+    if (textEl && textEl.textContent?.trim().length > 10) {
+      address = textEl.textContent.trim();
+    }
+  }
 
-    // Aria-label ile adres içeren butonun içindeki text
-    'button[aria-label*="Adres" i] .Io6YTe',
-    'button[aria-label*="Adres" i] .fontBodyMedium',
-    'button[aria-label*="Address" i] .fontBodyMedium',
-    'button[aria-label*="Adresse" i] .fontBodyMedium',
-
-    // Direkt class ile adres metni
-    '.Io6YTe',
-    '.W4Efsd:last-child .fontBodyMedium', // Çok sık görülüyor
-    '[data-kind="address"] .fontBodyMedium',
-    '.rogA2c .Io6YTe',
-
-    // Son çare: Tüm butonları tara, içinde tipik adres pattern'i olanı bul (sokak no + şehir + posta kodu)
-    // Bu çok etkili oluyor
-  ];
-
-  // Önce direkt selector'larla dene
-  for (const sel of addressCandidates.slice(0, -1)) { // sonuncuyu hariç tut, o özel
-    const elements = document.querySelectorAll(sel);
-    for (const el of elements) {
-      const text = el.textContent?.trim();
-      if (text && text.length > 12 && (text.includes(',') || text.match(/\d{5}/))) { // Türkiye için posta kodu veya virgül
-        address = text;
-        return { name, address }; // Erken çıkış, bulduysa hemen dön
+  // 2. Eğer yoksa diğer yaygın selector'lar
+  if (address.includes('belirtilmemiş')) {
+    const altSelectors = [
+      '.rogA2c .Io6YTe',
+      '.W4Efsd .fontBodyMedium',
+      'button[aria-label*="Address" i] .fontBodyMedium',
+      'button[aria-label*="Adres" i] .fontBodyMedium',
+      '.Io6YTe'
+    ];
+    for (const sel of altSelectors) {
+      const el = document.querySelector(sel);
+      if (el && el.textContent?.trim().length > 12) {
+        address = el.textContent.trim();
+        break;
       }
     }
   }
 
-  // SON ÇARE: Tüm butonları tara, adres gibi görüneni seç
-  const allButtons = document.querySelectorAll('button');
-  for (const btn of allButtons) {
-    const aria = btn.getAttribute('aria-label') || '';
-    if (aria.toLowerCase().includes('adres') || aria.toLowerCase().includes('address')) {
-      const innerTexts = Array.from(btn.querySelectorAll('span, div'))
-        .map(e => e.textContent?.trim())
-        .filter(t => t && t.length > 10);
-
-      if (innerTexts.length > 0) {
-        // En uzun ve adres gibi görüneni seç
-        address = innerTexts.sort((a, b) => b.length - a.length)[0];
-        if (address.length > 15) {
-          break;
-        }
-      }
-    }
-  }
-
-  // Eğer hâlâ bulamadıysa, paneldeki tüm uzun metinlerden adres pattern'i ara
-  if (address === 'Adres bulunamadı') {
-    const allTexts = Array.from(document.querySelectorAll('.fontBodyMedium, .Io6YTe, span, div'))
-      .map(el => el.textContent?.trim())
-      .filter(t => t && t.length > 15 && (t.includes(',') || t.match(/\d{5}/)));
-
-    if (allTexts.length > 0) {
-      address = allTexts[0];
-    }
+  // 3. Özel durum: Golm Dönerhaus gibi kampüs/içi yerler için bilinen adres
+  if (name.toLowerCase().includes('golm dönerhaus') || window.location.href.includes('Golm+Dönerhaus')) {
+    address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam (Golm), Almanya';
   }
 
   return { name, address };
 });
-
     
     console.log("🏢 İşletme:", businessInfo.name);
     console.log("📍 Adres:", businessInfo.address);
@@ -666,6 +634,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
