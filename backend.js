@@ -250,15 +250,15 @@ app.post("/scrape", async (req, res) => {
     
 const businessInfo = await page.evaluate(() => {
   // =========================
-  // İŞLETME ADI
+  // İŞLETME ADI (Güncel selector'lar ekledim)
   // =========================
   let name = 'İşletme adı bulunamadı';
   const nameSelectors = [
     'h1 span[jsan]', 
     'h1.DUwDvf', 
-    'h1', 
-    '.x3AX1-LfntMc-header-title-title span',  // Güncel yaygın selector
-    '[data-item-id="title"] span'              // Alternatif
+    'h1',
+    '.x3AX1-LfntMc-header-title-title span',  // Çok yaygın güncel
+    '[data-item-id="title"] span'
   ];
   for (const sel of nameSelectors) {
     const el = document.querySelector(sel);
@@ -269,21 +269,22 @@ const businessInfo = await page.evaluate(() => {
   }
 
   // =========================
-  // ADRES (DAHA GÜVENİLİR YÖNTEM)
+  // ADRES (EN GÜVENİLİR YÖNTEMLER ÖNCE)
   // =========================
   let address = 'Adres bulunamadı';
 
-  // 1. En güvenilir: Adres butonu (ikonlu) - aria-label genellikle "Address" veya "Adres" içerir
+  // 1. Adres butonu: aria-label "Address" veya "Adres" içeren button
   const addressButtons = Array.from(document.querySelectorAll('button[aria-label]'));
   for (const btn of addressButtons) {
-    const aria = btn.getAttribute('aria-label') || '';
-    if (aria.toLowerCase().includes('address') || aria.toLowerCase().includes('adres')) {
-      const textEl = btn.querySelector('[data-kind="address"] span, span, div');
-      if (textEl && textEl.innerText?.trim().length > 5) {
+    const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
+    if (aria.includes('address') || aria.includes('adres')) {
+      // Buton içindeki text (genellikle .Io6YTe class'lı)
+      const textEl = btn.querySelector('.Io6YTe, span, div');
+      if (textEl && textEl.innerText?.trim().length > 10) {
         address = textEl.innerText.trim();
         break;
       }
-      // Alternatif: butonun kendi içindeki text
+      // Alternatif: butonun kendi text'i
       if (btn.innerText?.trim().length > 10) {
         address = btn.innerText.trim();
         break;
@@ -291,15 +292,16 @@ const businessInfo = await page.evaluate(() => {
     }
   }
 
-  // 2. Fallback: Yaygın adres class'ları (güncel Google Maps'te sık görülenler)
+  // 2. Yaygın class selector'lar (2024-2025'te sık görülen)
   if (address === 'Adres bulunamadı') {
-    const fallbackSelectors = [
-      'button[data-item-id="address"] div font > span',  // Çok yaygın
-      '.Io6YTe fontBodyMedium',                         // Adres text class'ı
+    const directSelectors = [
+      'button[data-item-id="address"] .Io6YTe',
+      'button[data-item-id="address"] span',
+      '.Io6YTe',                                // Direkt adres text class'ı
       '[data-kind="address"] span',
-      'div[role="region"] button[aria-label*="Address"] ~ div'
+      '.QSFF4-text.gm2-body-2'                  // Eski ama hala çalışan
     ];
-    for (const sel of fallbackSelectors) {
+    for (const sel of directSelectors) {
       const el = document.querySelector(sel);
       if (el && el.innerText?.trim().length > 10) {
         address = el.innerText.trim();
@@ -308,13 +310,12 @@ const businessInfo = await page.evaluate(() => {
     }
   }
 
-  // 3. Son çare: İçinde sayı ve cadde/sokak kelimeleri geçen uzun text
+  // 3. SON ÇARE: Sadece adres butonu içindeki uzun text (yorumları önlemek için)
   if (address === 'Adres bulunamadı') {
-    const candidates = Array.from(document.querySelectorAll('span, div, button'));
-    for (const el of candidates) {
-      const text = el.innerText?.trim();
-      if (text && text.length > 15 && 
-          (text.match(/\d+/) && (text.match(/(Cad|Sk|Sok|Mah|Bul|No)/i) || text.includes(',')))) {
+    const allButtons = Array.from(document.querySelectorAll('button'));
+    for (const btn of allButtons) {
+      const text = btn.innerText?.trim();
+      if (text && text.length > 15 && text.match(/\d{1,5}.*,.*\d{5}/)) {  // Tipik adres: sayı + virgül + posta kodu
         address = text;
         break;
       }
@@ -323,7 +324,6 @@ const businessInfo = await page.evaluate(() => {
 
   return { name, address };
 });
-
 
     
     console.log("🏢 İşletme:", businessInfo.name);
@@ -649,6 +649,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
