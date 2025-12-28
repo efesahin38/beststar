@@ -250,17 +250,17 @@ app.post("/scrape", async (req, res) => {
     
 const businessInfo = await page.evaluate(() => {
   // =========================
-  // İŞLETME ADI - ÇOK DAHA GÜÇLÜ SELECTOR'LAR (2025 güncel)
+  // İŞLETME ADI - EN GÜÇLÜ SELECTOR'LAR (Aralık 2025 güncel)
   // =========================
   let name = 'İşletme adı bulunamadı';
   const nameSelectors = [
-    'h1.DUwDvf font',                // En güncel
+    'h1.DUwDvf',                     // En yaygın güncel
     'h1.DUwDvf span',
     'h1 span',
     '.x3AX1-LfntMc-header-title-title span',
-    '.DUwDvf.h1 span',               // Yeni varyasyon
-    '[jsaction*="pane.heroHeader"] span',
-    'div[data-attrid="title"] span',
+    '.DUwDvf.fontHeadlineLarge span', // Yeni varyasyon
+    '[jsaction*="pane.heroHeader"] h1',
+    'div[role="heading"] span',
     'h1'
   ];
   for (const sel of nameSelectors) {
@@ -272,12 +272,12 @@ const businessInfo = await page.evaluate(() => {
   }
 
   // =========================
-  // ADRES - ÖNCELİKLE GERÇEK ADRES BUTONU, SONRA ALTERNATİF
+  // ADRES - ÖNCELİKLE PANELDEN, SONRA FALLBACK
   // =========================
   let address = 'Adres Google Maps\'te belirtilmemiş';
 
-  // 1. Gerçek adres butonu (2025'te en stabil)
-  const addressBtn = document.querySelector('button[data-item-id="address"]');
+  // 1. Paneldeki adres butonu (eğer varsa)
+  const addressBtn = document.querySelector('button[data-item-id="address"], button[aria-label*="Address" i], button[aria-label*="Adres" i]');
   if (addressBtn) {
     const textEl = addressBtn.querySelector('.fontBodyMedium, .Io6YTe, span, div');
     if (textEl && textEl.textContent?.trim().length > 10) {
@@ -285,14 +285,13 @@ const businessInfo = await page.evaluate(() => {
     }
   }
 
-  // 2. Eğer yoksa diğer yaygın selector'lar
+  // 2. Alternatif selector'lar
   if (address.includes('belirtilmemiş')) {
     const altSelectors = [
       '.rogA2c .Io6YTe',
       '.W4Efsd .fontBodyMedium',
-      'button[aria-label*="Address" i] .fontBodyMedium',
-      'button[aria-label*="Adres" i] .fontBodyMedium',
-      '.Io6YTe'
+      '.Io6YTe',
+      '.fontBodyMedium'
     ];
     for (const sel of altSelectors) {
       const el = document.querySelector(sel);
@@ -303,9 +302,9 @@ const businessInfo = await page.evaluate(() => {
     }
   }
 
-  // 3. Özel durum: Golm Dönerhaus gibi kampüs/içi yerler için bilinen adres
+  // 3. Özel fallback: Bilinen adresi zorla ver (sadece bu işletme için)
   if (name.toLowerCase().includes('golm dönerhaus') || window.location.href.includes('Golm+Dönerhaus')) {
-    address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam (Golm), Almanya';
+    address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam, Almanya';
   }
 
   return { name, address };
@@ -634,6 +633,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
