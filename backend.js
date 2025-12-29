@@ -239,6 +239,14 @@ app.post("/scrape", async (req, res) => {
     );
     await delay(3000);
     
+    // Sayfa URL'sini güvenli şekilde al (business info için)
+    let businessPageUrl = '';
+    try {
+      businessPageUrl = page.url();
+    } catch (e) {
+      businessPageUrl = finalPlaceUrl;
+    }
+    
     const businessInfo = await page.evaluate((currentUrl) => {
       let name = 'İşletme adı bulunamadı';
 
@@ -293,7 +301,7 @@ app.post("/scrape", async (req, res) => {
       }
 
       return { name, address };
-    }, page.url());
+    }, businessPageUrl);
     
     console.log("🏢 İşletme:", businessInfo.name);
     console.log("📍 Adres:", businessInfo.address);
@@ -534,6 +542,15 @@ app.post("/scrape", async (req, res) => {
     });
     
     await delay(3000);
+    
+    // Sayfa URL'sini güvenli şekilde al
+    let currentPageUrl = '';
+    try {
+      currentPageUrl = page.url();
+    } catch (e) {
+      console.log("⚠️ URL alınamadı, fallback kullanılıyor");
+      currentPageUrl = finalPlaceUrl;
+    }
     
     const reviews = await page.evaluate(() => {
       const results = [];
