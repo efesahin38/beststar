@@ -419,7 +419,7 @@ app.post("/scrape", async (req, res) => {
     let lastOneTwoStarCount = 0;
     let stableStreak = 0;
     let scrollCount = 0;
-    const MAX_SCROLL = 900; // Daha fazla scroll
+    const MAX_SCROLL = 800; // Daha fazla scroll
     const STABLE_LIMIT = 50; // ÇOOOOK uzun sabitleme (50 iterasyon)
     const MIN_REVIEWS_TO_STOP = 9; // En az 5 yorum (düşük threshold)
     
@@ -732,5 +732,6 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
