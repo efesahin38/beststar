@@ -31,7 +31,7 @@ app.post("/scrape", async (req, res) => {
 
     // Render.com 512MB optimizasyonu
     browser = await puppeteer.launch({
-      headless: true,
+      headless: new,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium-browser",
       args: [
         "--no-sandbox",
@@ -47,12 +47,33 @@ app.post("/scrape", async (req, res) => {
         "--lang=tr-TR,tr",
         "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
       ],
-      dumpio: false
+      dumpio: false,
+      defaultViewport: null
     });
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(120000);
-    await page.setViewport({ width: 1280, height: 800 });
+    await page.setCacheEnabled(false);
+    await page.setRequestInterception(true);
+
+page.on('request', (req) => {
+  const resourceType = req.resourceType();
+  const url = req.url();
+
+  // Resimleri ve profil fotoğraflarını engelle
+  if (
+    resourceType === 'image' ||  // tüm resimler
+    resourceType === 'media' ||  // videolar, sesler
+    url.includes('googleusercontent.com') || 
+    url.includes('lh3.googleusercontent.com') ||
+    url.includes('yt3.ggpht.com') 
+  ) {
+    req.abort(); // istemi iptal et → bu içerik RAM’e gelmez
+  } else {
+    req.continue(); // diğer istekler normal devam eder
+  }
+});
+    
 
     // Anti-detection
     await page.evaluateOnNewDocument(() => {
@@ -413,85 +434,93 @@ const businessInfo = await page.evaluate((currentUrl) => {
     // ==========================================
     console.log("📜 Scroll başlatılıyor (TÜM 1-2 yıldızlı yorumlar çekilecek)...");
     
-    let oneTwoStarCount = 0;
-    let lastOneTwoStarCount = 0;
-    let stableStreak = 0;
-    let scrollCount = 0;
-    let threeStarAppeared = false;
-    const MAX_SCROLL = 250;
-    const STABLE_LIMIT = 15;
-    
-    for (let i = 0; i < MAX_SCROLL; i++) {
-      const { totalReviews, oneTwoStars, hasThreeStar } = await page.evaluate(() => {
-        // Scroll container'ı bul
-        const container = document.querySelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf') ||
-                          document.querySelector('.m6QErb') ||
-                          document.querySelector('div[role="region"]') ||
-                          document.querySelector('[role="main"]');
-        
-        if (!container) return { totalReviews: 0, oneTwoStars: 0, hasThreeStar: false };
-        
-        // Scroll yap
-        container.scrollTop = container.scrollHeight;
-        
-        // Yorum elementlerini say
-        const reviewElements = document.querySelectorAll('[data-review-id], .jftiEf');
-        
-        let oneTwoCount = 0;
-        let hasThree = false;
-        
-        reviewElements.forEach(card => {
-          const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
-          if (starEl) {
-            const ariaLabel = starEl.getAttribute('aria-label') || '';
-            const match = ariaLabel.match(/(\d+)/);
-            if (match) {
-              const rating = parseInt(match[1]);
-              if (rating === 1 || rating === 2) oneTwoCount++;
-              if (rating === 3) hasThree = true;
-            }
-          }
-        });
-        
-        return { 
-          totalReviews: reviewElements.length, 
-          oneTwoStars: oneTwoCount,
-          hasThreeStar: hasThree 
-        };
-      });
-      
-      scrollCount++;
-      oneTwoStarCount = oneTwoStars;
-      
-      // 3 yıldız takibi
-      if (hasThreeStar && !threeStarAppeared) {
-        console.log("⭐ 3 yıldızlı yorum görüldü (devam ediliyor)");
-        threeStarAppeared = true;
-      }
-      
-      // 1-2 yıldız sayısı değişti mi?
-      if (oneTwoStarCount === lastOneTwoStarCount) {
-        stableStreak++;
-      } else {
-        stableStreak = 0;
-      }
-      lastOneTwoStarCount = oneTwoStarCount;
-      
-      // Log
-      if (i % 10 === 0) {
-        console.log(`📊 Scroll ${i} | Toplam: ${totalReviews} | 1-2⭐: ${oneTwoStarCount} | Sabit: ${stableStreak}`);
-      }
-      
-      // Durma kriterleri
-      if (stableStreak >= STABLE_LIMIT && oneTwoStarCount >= 5) {
-        console.log("🛑 1-2 yıldız artık çıkmıyor, tamamlandı!");
-        break;
-      }
-      
-      await delay(600 + Math.random() * 250);
-    }
-    
-    console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${oneTwoStarCount} adet 1-2⭐`);
+  let oneTwoStarCount = 0;
+let lastOneTwoStarCount = 0;
+let stableStreak = 0;
+let scrollCount = 0;
+let threeStarAppeared = false;
+const MAX_SCROLL = 250;
+const STABLE_LIMIT = 15;
+const MAX_REVIEWS = 100; // maksimum çekilecek 1-2⭐ yorum sayısı
+
+const reviews = []; // tüm yorumları burada biriktiriyoruz
+
+for (let i = 0; i < MAX_SCROLL; i++) {
+  scrollCount++;
+
+  // Scroll ve yorumları DOM'dan al
+  const { newReviews, hasThreeStar } = await page.evaluate(() => {
+    const container = document.querySelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf') || 
+                      document.querySelector('.m6QErb') ||
+                      document.querySelector('div[role="region"]') ||
+                      document.querySelector('[role="main"]');
+    if (!container) return { newReviews: [], hasThreeStar: false };
+
+    container.scrollTop = container.scrollHeight;
+
+    const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf'));
+    const results = [];
+    let hasThree = false;
+
+    reviewElements.forEach(card => {
+      try {
+        const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
+        if (!starEl) return;
+        const match = starEl.getAttribute('aria-label')?.match(/(\d+)/);
+        if (!match) return;
+        const rating = parseInt(match[1]);
+        if (rating > 2) return; // sadece 1-2⭐
+        if (rating === 3) hasThree = true;
+
+        const textEl = card.querySelector('.wiI7pd, span[data-expandable-section], .MyEned, span[jsan]');
+        const text = textEl?.textContent?.trim() || '';
+
+        const authorEl = card.querySelector('.d4r55, .WNxzHc, button.WEBjve');
+        const author = authorEl?.textContent?.trim().split('·')[0].trim() || 'Anonim';
+
+        const dateEl = card.querySelector('.rsqaWe, span.rsqaWe');
+        const date = dateEl?.textContent?.trim() || '';
+
+        results.push({ rating, text, author, date, hasReview: text.length > 0 });
+      } catch (e) {}
+    });
+
+    return { newReviews: results, hasThreeStar: hasThree };
+  });
+
+  // Yeni yorumları reviews array'ine ekle
+  reviews.push(...newReviews);
+  oneTwoStarCount = reviews.length;
+
+  // 3 yıldız takibi
+  if (hasThreeStar && !threeStarAppeared) threeStarAppeared = true;
+
+  // Stabil sayfa kontrolü
+  if (oneTwoStarCount === lastOneTwoStarCount) stableStreak++;
+  else stableStreak = 0;
+  lastOneTwoStarCount = oneTwoStarCount;
+
+  // Log
+  if (i % 10 === 0) {
+    console.log(`📊 Scroll ${i} | 1-2⭐: ${oneTwoStarCount} | Sabit: ${stableStreak}`);
+  }
+
+  // Durdurma kriterleri
+  if (stableStreak >= STABLE_LIMIT && oneTwoStarCount >= 5) {
+    console.log("🛑 1-2 yıldız artık çıkmıyor, scroll tamamlandı!");
+    break;
+  }
+
+  if (reviews.length >= MAX_REVIEWS) {
+    console.log(`🛑 Maksimum ${MAX_REVIEWS} yorum çekildi, scroll durduruldu!`);
+    break;
+  }
+
+  await delay(600 + Math.random() * 250);
+}
+
+console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${oneTwoStarCount} adet 1-2⭐`);
+
     await delay(2000);
 
     // ==========================================
@@ -638,6 +667,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
