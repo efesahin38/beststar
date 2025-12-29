@@ -4,11 +4,8 @@ const puppeteer = require("puppeteer-core");
 const app = express();
 app.use(cors());
 app.use(express.json());
-
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
 app.get("/health", (req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
-
 app.get("/debug-chrome", (req, res) => {
   const fs = require("fs");
   const paths = [
@@ -20,15 +17,12 @@ app.get("/debug-chrome", (req, res) => {
   const found = paths.filter(p => fs.existsSync(p));
   res.json({ found, env: process.env.PUPPETEER_EXECUTABLE_PATH });
 });
-
 app.post("/scrape", async (req, res) => {
   const business = req.body.business;
   if (!business) return res.json({ error: "İşletme adı gerekli." });
-
   let browser;
   try {
     console.log(`🔎 "${business}" aranıyor...`);
-
     // Render.com 512MB optimizasyonu
    browser = await puppeteer.launch({
   headless: true,
@@ -41,27 +35,17 @@ app.post("/scrape", async (req, res) => {
     "--disable-software-rasterizer",
     "--disable-blink-features=AutomationControlled",
     "--lang=tr-TR,tr",
-    "--single-process",         // RAM azaltır
-    "--no-zygote",              // RAM azaltır
-    "--disable-extensions",     // RAM azaltır
+    "--single-process", // RAM azaltır
+    "--no-zygote", // RAM azaltır
+    "--disable-extensions", // RAM azaltır
     "--disable-background-networking",
     "--disable-sync",
     "--disable-translate",
-    "--disable-background-timer-throttling",
-    "--disable-accelerated-2d-canvas",  // 2D rendering'i kapat
-  "--disable-accelerated-video-decode",  // Video decode'u kapat (yorumlarda video olmayacak)
-  "--no-first-run",  // İlk çalıştırma ayarlarını atla
-  "--disable-infobars",  // Info bar'ları kapat
-  "--disable-breakpad",  // Crash reporting'i kapat
-  "--disable-crash-reporter",  // Crash reporter'ı kapat
-  "--disable-features=site-per-process",  // Site isolation'ı kapat (dikkat, güvenlik düşer ama RAM azalır)
-  "--renderer-process-limit=1"
+    "--disable-background-timer-throttling"
   ],
   ignoreDefaultArgs: ["--enable-automation"], // Fazla yükü azaltır
   dumpio: false
 });
-
-
     const page = await browser.newPage();
     await page.setDefaultTimeout(120000);
     await page.setViewport({ width: 800, height: 600 });
@@ -69,26 +53,16 @@ app.post("/scrape", async (req, res) => {
 page.on('request', (req) => {
   const resourceType = req.resourceType();
   const url = req.url();
-
-  // 1. Genel image ve media'ları blokla (reklam, icon, harita tile'ları vs.)
-  if (resourceType === 'image' || resourceType === 'media') {
-    // AMA profil fotoğraflarını serbest bırak (yorumların yüklenmesi için şart)
-    if (
-      url.includes('googleusercontent.com') ||
-      url.includes('lh3.googleusercontent.com') ||
-      url.includes('yt3.ggpht.com')
-    ) {
-      req.continue();  // Profil fotoğraflarını yükle
-    } else {
-      req.abort();     // Diğer tüm resimleri blokla
-    }
-  }
-  // 2. Fontları da blokla (büyük RAM tasarrufu, yorumlara etkisi yok)
-  else if (resourceType === 'font') {
+  // Resimleri ve Google'ın profil fotoğraflarını (en büyük RAM tüketicileri) tamamen blokla
+  if (
+    resourceType === 'image' ||
+    resourceType === 'media' ||
+    url.includes('googleusercontent.com') || // Profil fotoğrafları
+    url.includes('lh3.googleusercontent.com') || // Eski profil foto linkleri
+    url.includes('yt3.ggpht.com') // YouTube kanal fotoğrafları (yorumlarda çıkabiliyor)
+  ) {
     req.abort();
-  }
-  // 3. Diğer her şeyi (script, stylesheet, xhr vs.) normal geçir
-  else {
+  } else {
     req.continue();
   }
 });
@@ -98,7 +72,6 @@ page.on('request', (req) => {
       Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
       Object.defineProperty(navigator, 'languages', { get: () => ['tr-TR', 'tr'] });
     });
-
     // Cookie consent bypass
     await page.setCookie({
       name: 'CONSENT',
@@ -107,7 +80,6 @@ page.on('request', (req) => {
       path: '/',
       expires: Date.now() / 1000 + 31536000
     });
-
     // ==========================================
     // 1. GOOGLE MAPS'E GİT
     // ==========================================
@@ -115,7 +87,6 @@ page.on('request', (req) => {
     console.log("🌐 Google Maps açılıyor...");
     await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
     await delay(3000);
-
     // ==========================================
     // 2. COOKIE CONSENT BYPASS
     // ==========================================
@@ -124,33 +95,30 @@ page.on('request', (req) => {
       console.log("🍪 Consent bypass...");
       await page.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('button, div[role="button"]'));
-        const acceptBtn = buttons.find(b => 
+        const acceptBtn = buttons.find(b =>
           (b.textContent || '').toLowerCase().match(/accept|kabul|akzeptieren|agree|alle/)
         );
         if (acceptBtn) acceptBtn.click();
       });
       await delay(3000);
-      
+     
       if (page.url().includes('consent.google.com')) {
         await page.evaluate(() => document.querySelector('form')?.submit());
         await delay(3000);
       }
-      
+     
       if (!page.url().includes('/maps/')) {
         await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 90000 });
         await delay(5000);
       }
     }
-
     console.log("✅ Maps sayfasındayız");
-
     // ==========================================
     // 3. İŞLETME KARTINI BUL - ÇOKLU STRATEJİ
     // ==========================================
     console.log("🎯 İşletme kartı aranıyor...");
     let placeFound = false;
     let finalPlaceUrl = "";
-
     // STRATEJİ 1: Place link bekle (kısa timeout)
     if (!placeFound) {
       try {
@@ -158,29 +126,27 @@ page.on('request', (req) => {
         await page.waitForSelector('a[href*="/maps/place/"]', { timeout: 20000 });
         const placeLinks = await page.$$('a[href*="/maps/place/"]');
         console.log(`✅ ${placeLinks.length} place link bulundu`);
-        
+       
         if (placeLinks.length > 0) {
           const businessLower = business.toLowerCase();
           let bestMatch = 0;
           let bestScore = 0;
-
           // İlk 3 linki kontrol et
           for (let i = 0; i < Math.min(3, placeLinks.length); i++) {
             const linkInfo = await page.evaluate(el => ({
               text: (el.textContent || '').trim().toLowerCase(),
               href: el.href
             }), placeLinks[i]);
-            
+           
             const words = businessLower.split(' ').filter(w => w.length > 2);
             let score = words.filter(word => linkInfo.text.includes(word)).length;
-            
+           
             if (score > bestScore) {
               bestScore = score;
               bestMatch = i;
               finalPlaceUrl = linkInfo.href;
             }
           }
-
           console.log(`📌 En iyi eşleşme: index ${bestMatch} (skor: ${bestScore})`);
           await placeLinks[bestMatch].click();
           console.log("✅ Link tıklandı");
@@ -193,22 +159,21 @@ page.on('request', (req) => {
         console.log("⚠️ Strateji 1 başarısız:", e.message);
       }
     }
-
     // STRATEJİ 2: Kart selectors
     if (!placeFound) {
       try {
         console.log("📍 Strateji 2: Kart selectors...");
         const cardSelectors = ['.hfpxzc', '.Nv2PK', 'div[role="article"]', '.qBF1Pd'];
-        
+       
         for (const selector of cardSelectors) {
           const cards = await page.$$(selector);
           if (cards.length > 0) {
             console.log(`✅ ${selector}: ${cards.length} kart`);
-            const cardText = await page.evaluate(el => 
-              (el.textContent || '').trim().toLowerCase(), 
+            const cardText = await page.evaluate(el =>
+              (el.textContent || '').trim().toLowerCase(),
               cards[0]
             );
-            
+           
             if (cardText.includes(business.toLowerCase().substring(0, 8))) {
               await cards[0].click();
               console.log(`✅ Kart tıklandı`);
@@ -222,7 +187,6 @@ page.on('request', (req) => {
         console.log("⚠️ Strateji 2 başarısız");
       }
     }
-
     // STRATEJİ 3: Direkt URL'ye git
     if (!placeFound) {
       try {
@@ -231,7 +195,7 @@ page.on('request', (req) => {
           const link = document.querySelector('a[href*="/maps/place/"]');
           return link ? link.href : null;
         });
-        
+       
         if (placeUrl) {
           console.log(`🔗 URL'ye gidiliyor...`);
           finalPlaceUrl = placeUrl;
@@ -243,7 +207,6 @@ page.on('request', (req) => {
         console.log("⚠️ Strateji 3 başarısız");
       }
     }
-
     // STRATEJİ 4: Koordinat tıklama
     if (!placeFound) {
       try {
@@ -259,18 +222,15 @@ page.on('request', (req) => {
         console.log("⚠️ Strateji 4 başarısız");
       }
     }
-
     if (!placeFound) {
       console.log("❌ İşletme kartı bulunamadı!");
-      return res.json({ 
+      return res.json({
         error: "İşletme bulunamadı. İşletme adını şehir ile deneyin.",
         suggestion: `Örnek: "${business} + şehir adı"`
       });
     }
-
     console.log("🎉 İşletme kartı açıldı!");
     console.log(`🔗 Place URL: ${finalPlaceUrl.substring(0, 100)}...`);
-
     // ==========================================
     // 4. İŞLETME BİLGİLERİNİ AL - DOĞRU ADRES GARANTİLİ
     // ==========================================
@@ -279,26 +239,24 @@ page.on('request', (req) => {
   'button[data-item-id="address"], h1.DUwDvf, h1',
   { timeout: 20000 }
 ).catch(() => console.log('⚠️ Detay panel geç yüklendi'));
-    
+   
     // İsim için bekle
-    await page.waitForSelector('h1.DUwDvf, h1', { timeout: 15000 }).catch(() => 
+    await page.waitForSelector('h1.DUwDvf, h1', { timeout: 15000 }).catch(() =>
       console.log("⚠️ H1 bulunamadı")
     );
     await delay(3000);
-    
+   
 const businessInfo = await page.evaluate((currentUrl) => {
   // =========================
   // İŞLETME ADI - URL'DEN ÇEK (EN GÜVENİLİR YÖNTEM)
   // =========================
   let name = 'İşletme adı bulunamadı';
-
   // URL'den place adı çıkar (Google Maps URL'leri /place/İşletme+Adı/ şeklinde)
   const urlParts = currentUrl.split('/place/');
   if (urlParts.length > 1) {
     const placePart = urlParts[1].split('/')[0];
     name = decodeURIComponent(placePart.replace(/\+/g, ' ')).trim();
   }
-
   // Eğer URL'den çıkmazsa panel selector'ları dene (fallback)
   if (name === 'İşletme adı bulunamadı' || name.length < 3) {
     const nameSelectors = [
@@ -317,12 +275,10 @@ const businessInfo = await page.evaluate((currentUrl) => {
       }
     }
   }
-
   // =========================
   // ADRES - PANELDEN + AKILLI FALLBACK
   // =========================
   let address = 'Adres Google Maps\'te belirtilmemiş (kampüs içi küçük işletme olabilir)';
-
   // 1. Normal adres butonu varsa çek
   const addressBtn = document.querySelector('button[data-item-id="address"], button[aria-label*="Address" i], button[aria-label*="Adres" i]');
   if (addressBtn) {
@@ -331,7 +287,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
       address = textEl.textContent.trim();
     }
   }
-
   // 2. Alternatif selector'lar
   if (address.includes('belirtilmemiş')) {
     const altSelectors = ['.Io6YTe', '.fontBodyMedium', '.rogA2c .Io6YTe'];
@@ -343,26 +298,23 @@ const businessInfo = await page.evaluate((currentUrl) => {
       }
     }
   }
-
   // 3. Özel bilinen adresler (Golm Dönerhaus ve benzeri yaygın sorunlu yerler)
   const lowerName = name.toLowerCase();
   if (lowerName.includes('golm dönerhaus') || currentUrl.includes('Golm+Dönerhaus')) {
     address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam, Almanya';
   }
-
   return { name, address };
-}, page.url());  // <-- current URL'yi evaluate'e parametre olarak gönder
-    
+}, page.url()); // <-- current URL'yi evaluate'e parametre olarak gönder
+   
     console.log("🏢 İşletme:", businessInfo.name);
     console.log("📍 Adres:", businessInfo.address);
-    
-
+   
     // ==========================================
     // 5. YORUMLAR SEKMESİNİ AÇ
     // ==========================================
     console.log("💬 Yorumlar sekmesi açılıyor...");
     await delay(2000);
-    
+   
     const reviewButtonSelectors = [
       'button[jsaction*="pane.rating.moreReviews"]',
       'button[aria-label*="review" i]',
@@ -374,7 +326,7 @@ const businessInfo = await page.evaluate((currentUrl) => {
       'button.HHrUdb',
       'button[data-value*="review" i]'
     ];
-    
+   
     let reviewsOpened = false;
     for (const selector of reviewButtonSelectors) {
       const btn = await page.$(selector);
@@ -386,23 +338,20 @@ const businessInfo = await page.evaluate((currentUrl) => {
         break;
       }
     }
-
     if (!reviewsOpened) {
       console.log("❌ Yorumlar sekmesi açılamadı!");
-      return res.json({ 
+      return res.json({
         error: "Yorumlar sekmesi açılamadı. İşletmenin yorumu olmayabilir.",
         businessInfo
       });
     }
-
     console.log("✅ Yorumlar sekmesi açıldı");
-
     // ==========================================
     // 6. SIRALAMA - EN DÜŞÜK PUANLI
     // ==========================================
     console.log("⭐ Sıralama ayarlanıyor...");
     await delay(1500);
-    
+   
     try {
       const sortSelectors = [
         'button[aria-label*="sırala" i]',
@@ -410,18 +359,18 @@ const businessInfo = await page.evaluate((currentUrl) => {
         'button[aria-label*="sortier" i]',
         'button[data-value="Sort"]'
       ];
-      
+     
       let sortBtn = null;
       for (const sel of sortSelectors) {
         sortBtn = await page.$(sel);
         if (sortBtn) break;
       }
-      
+     
       if (sortBtn) {
         await sortBtn.click();
         console.log("✅ Sıralama menüsü açıldı");
         await delay(1000);
-        
+       
         // En düşük puanlı seç
         const lowestSelectors = [
           '[data-index="1"]',
@@ -429,7 +378,7 @@ const businessInfo = await page.evaluate((currentUrl) => {
           'li[role="menuitemradio"]:nth-child(2)',
           '[data-value="qualityScore"]'
         ];
-        
+       
         for (const sel of lowestSelectors) {
           const option = await page.$(sel);
           if (option) {
@@ -445,12 +394,11 @@ const businessInfo = await page.evaluate((currentUrl) => {
     } catch (e) {
       console.log("⚠️ Sıralama hatası:", e.message);
     }
-
     // ==========================================
     // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK
     // ==========================================
     console.log("📜 Scroll başlatılıyor (TÜM 1-2 yıldızlı yorumlar çekilecek)...");
-    
+   
     let oneTwoStarCount = 0;
     let lastOneTwoStarCount = 0;
     let stableStreak = 0;
@@ -458,7 +406,7 @@ const businessInfo = await page.evaluate((currentUrl) => {
     let threeStarAppeared = false;
     const MAX_SCROLL = 250;
     const STABLE_LIMIT = 15;
-    
+   
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars, hasThreeStar } = await page.evaluate(() => {
         // Scroll container'ı bul
@@ -466,18 +414,18 @@ const businessInfo = await page.evaluate((currentUrl) => {
                           document.querySelector('.m6QErb') ||
                           document.querySelector('div[role="region"]') ||
                           document.querySelector('[role="main"]');
-        
+       
         if (!container) return { totalReviews: 0, oneTwoStars: 0, hasThreeStar: false };
-        
+       
         // Scroll yap
         container.scrollTop = container.scrollHeight;
-        
+       
         // Yorum elementlerini say
         const reviewElements = document.querySelectorAll('[data-review-id], .jftiEf');
-        
+       
         let oneTwoCount = 0;
         let hasThree = false;
-        
+       
         reviewElements.forEach(card => {
           const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
           if (starEl) {
@@ -490,23 +438,23 @@ const businessInfo = await page.evaluate((currentUrl) => {
             }
           }
         });
-        
-        return { 
-          totalReviews: reviewElements.length, 
+       
+        return {
+          totalReviews: reviewElements.length,
           oneTwoStars: oneTwoCount,
-          hasThreeStar: hasThree 
+          hasThreeStar: hasThree
         };
       });
-      
+     
       scrollCount++;
       oneTwoStarCount = oneTwoStars;
-      
+     
       // 3 yıldız takibi
       if (hasThreeStar && !threeStarAppeared) {
         console.log("⭐ 3 yıldızlı yorum görüldü (devam ediliyor)");
         threeStarAppeared = true;
       }
-      
+     
       // 1-2 yıldız sayısı değişti mi?
       if (oneTwoStarCount === lastOneTwoStarCount) {
         stableStreak++;
@@ -514,40 +462,39 @@ const businessInfo = await page.evaluate((currentUrl) => {
         stableStreak = 0;
       }
       lastOneTwoStarCount = oneTwoStarCount;
-      
+     
       // Log
       if (i % 10 === 0) {
         console.log(`📊 Scroll ${i} | Toplam: ${totalReviews} | 1-2⭐: ${oneTwoStarCount} | Sabit: ${stableStreak}`);
       }
-      
+     
       // Durma kriterleri
       if (stableStreak >= STABLE_LIMIT && oneTwoStarCount >= 5) {
         console.log("🛑 1-2 yıldız artık çıkmıyor, tamamlandı!");
         break;
       }
-      
+     
       await delay(600 + Math.random() * 250);
     }
-    
+   
     console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${oneTwoStarCount} adet 1-2⭐`);
     await delay(2000);
-
     // ==========================================
     // 8. YORUMLARI PARSE ET
     // ==========================================
     console.log("🔍 Yorumlar parse ediliyor...");
-    
+   
     // Expand butonlarını tıkla
     await page.evaluate(() => {
       const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf'));
       reviewElements.forEach(card => {
         const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
         if (!starEl) return;
-        
+       
         const match = starEl.getAttribute('aria-label')?.match(/(\d+)/);
         if (!match) return;
         const rating = parseInt(match[1]);
-        
+       
         if (rating <= 2) {
           const expandBtns = card.querySelectorAll('button[aria-label*="daha" i], button[aria-label*="more" i], button.w8nwRe, button[jsaction*="review.expandReview"]');
           expandBtns.forEach(btn => {
@@ -558,15 +505,15 @@ const businessInfo = await page.evaluate((currentUrl) => {
         }
       });
     });
-    
+   
     await delay(1500);
-    
+   
     const reviews = await page.evaluate(() => {
       const results = [];
       const seenHashes = new Set();
-      
+     
       const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf, div[jsaction*="pane.review"]'));
-      
+     
       reviewElements.forEach((card) => {
         try {
           // Yıldız
@@ -577,9 +524,9 @@ const businessInfo = await page.evaluate((currentUrl) => {
             const match = ariaLabel.match(/(\d+)/);
             if (match) rating = parseInt(match[1]);
           }
-          
+         
           if (!rating || rating > 2) return;
-          
+         
           // Metin
           let text = '';
           const textSelectors = ['.wiI7pd', 'span[data-expandable-section]', '.MyEned', 'span[jsan]'];
@@ -590,7 +537,7 @@ const businessInfo = await page.evaluate((currentUrl) => {
               if (text.length > 10) break;
             }
           }
-          
+         
           // Yazar
           let author = 'Anonim';
           const authorSelectors = ['.d4r55', '.WNxzHc', 'button.WEBjve'];
@@ -601,7 +548,7 @@ const businessInfo = await page.evaluate((currentUrl) => {
               if (author.length > 0) break;
             }
           }
-          
+         
           // Tarih
           let date = '';
           const dateSelectors = ['.rsqaWe', 'span.rsqaWe'];
@@ -612,32 +559,28 @@ const businessInfo = await page.evaluate((currentUrl) => {
               break;
             }
           }
-          
+         
           // Hash ile unique kontrol
           const hash = `${rating}|${author}|${text.substring(0, 80)}`;
           if (seenHashes.has(hash)) return;
           seenHashes.add(hash);
-          
-          results.push({ 
-            rating, 
-            text, 
-            author, 
+         
+          results.push({
+            rating,
+            text,
+            author,
             date,
-            hasReview: text.length > 0 
+            hasReview: text.length > 0
           });
         } catch (e) {}
       });
-      
+     
       return results;
     });
-
     console.log(`✅ ${reviews.length} adet 1-2 yıldızlı yorum parse edildi`);
-
     const oneStar = reviews.filter(r => r.rating === 1);
     const twoStar = reviews.filter(r => r.rating === 2);
-
     console.log(`📊 1⭐: ${oneStar.length} | 2⭐: ${twoStar.length}`);
-
     // ==========================================
     // 9. RESPONSE GÖNDER
     // ==========================================
@@ -657,7 +600,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
       total_reviews_scraped: reviews.length,
       scroll_iterations: scrollCount
     });
-
   } catch (err) {
     console.error("❌ HATA:", err.message);
     console.error("Stack:", err.stack);
@@ -669,24 +611,9 @@ const businessInfo = await page.evaluate((currentUrl) => {
     }
   }
 });
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server çalışıyor: http://localhost:${PORT}`);
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
