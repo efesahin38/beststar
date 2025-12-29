@@ -274,27 +274,43 @@ app.post("/scrape", async (req, res) => {
         }
       }
 
-      let address = 'Adres Google Maps\'te belirtilmemiş (kampüs içi küçük işletme olabilir)';
+      let address = 'Adres bulunamadı';
 
-      const addressBtn = document.querySelector('button[data-item-id="address"], button[aria-label*="Address" i], button[aria-label*="Adres" i]');
+      // 1. Button ile adres bul
+      const addressBtn = document.querySelector('button[data-item-id="address"], button[aria-label*="Address" i], button[aria-label*="Adres" i], .rogA2c');
       if (addressBtn) {
-        const textEl = addressBtn.querySelector('.fontBodyMedium, .Io6YTe, span, div');
-        if (textEl && textEl.textContent?.trim().length > 10) {
+        const textEl = addressBtn.querySelector('.fontBodyMedium, .Io6YTe, span, div, .lRVTfe');
+        if (textEl && textEl.textContent?.trim().length > 5) {
           address = textEl.textContent.trim();
         }
       }
 
-      if (address.includes('belirtilmemiş')) {
-        const altSelectors = ['.Io6YTe', '.fontBodyMedium', '.rogA2c .Io6YTe'];
-        for (const sel of altSelectors) {
-          const el = document.querySelector(sel);
-          if (el && el.textContent?.trim().length > 12) {
-            address = el.textContent.trim();
-            break;
+      // 2. Doğrudan adres text'ini ara
+      if (address === 'Adres bulunamadı') {
+        const addressSpans = document.querySelectorAll('span');
+        for (const span of addressSpans) {
+          const text = span.textContent.trim();
+          // Adres gibi görünen metni bul (sokak, şehir, posta kodu içeren)
+          if (text.match(/\d+.*,.*\d{4,}/) || text.match(/straße|straße|street|str\.|straße|cadde|cad\.|yolu/i)) {
+            if (text.length > 10 && text.length < 200) {
+              address = text;
+              break;
+            }
           }
         }
       }
 
+      // 3. Fallback: URL'den adres çıkarmayı dene
+      if (address === 'Adres bulunamadı' && currentUrl.includes('@')) {
+        const parts = currentUrl.split('@')[1];
+        if (parts) {
+          const coords = parts.split(',').slice(0, 2).join(',');
+          // En azından koordinatları döndür
+          address = `Koordinatlar: ${coords}`;
+        }
+      }
+
+      // Özel durumlar
       const lowerName = name.toLowerCase();
       if (lowerName.includes('golm dönerhaus') || currentUrl.includes('Golm+Dönerhaus')) {
         address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam, Almanya';
@@ -403,9 +419,9 @@ app.post("/scrape", async (req, res) => {
     let lastOneTwoStarCount = 0;
     let stableStreak = 0;
     let scrollCount = 0;
-    const MAX_SCROLL = 300;
-    const STABLE_LIMIT = 20; // Daha uzun sabitleme
-    const MIN_REVIEWS_TO_STOP = 10; // En az 10 yorum
+    const MAX_SCROLL = 500; // Daha fazla scroll
+    const STABLE_LIMIT = 50; // ÇOOOOK uzun sabitleme (50 iterasyon)
+    const MIN_REVIEWS_TO_STOP = 5; // En az 5 yorum (düşük threshold)
     
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
