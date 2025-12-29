@@ -239,7 +239,6 @@ app.post("/scrape", async (req, res) => {
     );
     await delay(3000);
     
-    // Sayfa URL'sini güvenli şekilde al (business info için)
     let businessPageUrl = '';
     try {
       businessPageUrl = page.url();
@@ -276,7 +275,6 @@ app.post("/scrape", async (req, res) => {
 
       let address = 'Adres bulunamadı';
 
-      // 1. Button ile adres bul
       const addressBtn = document.querySelector('button[data-item-id="address"], button[aria-label*="Address" i], button[aria-label*="Adres" i], .rogA2c');
       if (addressBtn) {
         const textEl = addressBtn.querySelector('.fontBodyMedium, .Io6YTe, span, div, .lRVTfe');
@@ -285,12 +283,10 @@ app.post("/scrape", async (req, res) => {
         }
       }
 
-      // 2. Doğrudan adres text'ini ara
       if (address === 'Adres bulunamadı') {
         const addressSpans = document.querySelectorAll('span');
         for (const span of addressSpans) {
           const text = span.textContent.trim();
-          // Adres gibi görünen metni bul (sokak, şehir, posta kodu içeren)
           if (text.match(/\d+.*,.*\d{4,}/) || text.match(/straße|straße|street|str\.|straße|cadde|cad\.|yolu/i)) {
             if (text.length > 10 && text.length < 200) {
               address = text;
@@ -300,17 +296,14 @@ app.post("/scrape", async (req, res) => {
         }
       }
 
-      // 3. Fallback: URL'den adres çıkarmayı dene
       if (address === 'Adres bulunamadı' && currentUrl.includes('@')) {
         const parts = currentUrl.split('@')[1];
         if (parts) {
           const coords = parts.split(',').slice(0, 2).join(',');
-          // En azından koordinatları döndür
           address = `Koordinatlar: ${coords}`;
         }
       }
 
-      // Özel durumlar
       const lowerName = name.toLowerCase();
       if (lowerName.includes('golm dönerhaus') || currentUrl.includes('Golm+Dönerhaus')) {
         address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam, Almanya';
@@ -411,17 +404,18 @@ app.post("/scrape", async (req, res) => {
     }
 
     // ==========================================
-    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK (AGGRESSIVE)
+    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK
     // ==========================================
     console.log("📜 Scroll başlatılıyor (TÜM 1-2 yıldızlı yorumlar çekilecek)...");
     
     let oneTwoStarCount = 0;
+    let totalReviewsCount = 0;
     let lastOneTwoStarCount = 0;
-    let stableStreak = 0;
+    let lastTotalReviewsCount = 0;
+    let noChangeCount = 0;
     let scrollCount = 0;
-    const MAX_SCROLL = 500; // Daha fazla scroll
-    const STABLE_LIMIT = 50; // ÇOOOOK uzun sabitleme (50 iterasyon)
-    const MIN_REVIEWS_TO_STOP = 5; // En az 5 yorum (düşük threshold)
+    const MAX_SCROLL = 500;
+    const NO_CHANGE_LIMIT = 2;
     
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
@@ -443,15 +437,12 @@ app.post("/scrape", async (req, res) => {
         
         if (!container) return { totalReviews: 0, oneTwoStars: 0 };
         
-        // Daha agresif scroll
         container.scrollTop = container.scrollHeight;
         
-        // Tüm review'ları bul (çoklu selector)
         const reviewElements = Array.from(
           document.querySelectorAll('[data-review-id], .jftiEf, .Nv2PK, div[jsaction*="pane.review"]')
         );
         
-        // Duplikatları filter'le
         const uniqueElements = [];
         const seenIds = new Set();
         
@@ -484,26 +475,24 @@ app.post("/scrape", async (req, res) => {
       });
       
       scrollCount++;
+      totalReviewsCount = totalReviews;
       oneTwoStarCount = oneTwoStars;
       
-      // 1-2 yıldız sayısı değişti mi?
-      if (oneTwoStarCount === lastOneTwoStarCount) {
-        stableStreak++;
+      if (totalReviewsCount === lastTotalReviewsCount && oneTwoStarCount === lastOneTwoStarCount) {
+        noChangeCount++;
+        console.log(`📊 Scroll ${i} | Toplam: ${totalReviewsCount} | 1-2⭐: ${oneTwoStarCount} | Değişim yok: ${noChangeCount}/${NO_CHANGE_LIMIT}`);
+        
+        if (noChangeCount >= NO_CHANGE_LIMIT) {
+          console.log(`🛑 ${NO_CHANGE_LIMIT} iterasyondır değişim yok, durduruluyor!`);
+          break;
+        }
       } else {
-        stableStreak = 0;
+        noChangeCount = 0;
+        console.log(`📊 Scroll ${i} | Toplam: ${totalReviewsCount} | 1-2⭐: ${oneTwoStarCount} | ✨ Yeni yorum!`);
       }
+      
+      lastTotalReviewsCount = totalReviewsCount;
       lastOneTwoStarCount = oneTwoStarCount;
-      
-      // Log (her 10'da bir)
-      if (i % 10 === 0) {
-        console.log(`📊 Scroll ${i} | Toplam: ${totalReviews} | 1-2⭐: ${oneTwoStarCount} | Sabit: ${stableStreak}`);
-      }
-      
-      // ERKEN DURMA - Daha uzun sabitleme gerekli
-      if (oneTwoStarCount >= MIN_REVIEWS_TO_STOP && stableStreak >= STABLE_LIMIT) {
-        console.log(`🛑 Yorum sayısı sabitlendi (${oneTwoStarCount} adet, ${stableStreak} iterasyon), durduruluyor!`);
-        break;
-      }
       
       await delay(800 + Math.random() * 300);
     }
@@ -516,14 +505,12 @@ app.post("/scrape", async (req, res) => {
     // ==========================================
     console.log("🔍 Tüm 1-2 yıldızlı yorumlar expand ediliyor...");
     
-    // 2000ms expand işlemlerine zaman ver
     await page.evaluate(() => {
       const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf, .Nv2PK, div[jsaction*="pane.review"]'));
       let expandedCount = 0;
       
       reviewElements.forEach((card) => {
         try {
-          // Star'ı bul
           const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
           if (!starEl) return;
           
@@ -533,13 +520,11 @@ app.post("/scrape", async (req, res) => {
           
           const rating = parseInt(match[1]);
           if (rating <= 2) {
-            // Tüm expand button'larını bul ve tıkla
             const buttons = card.querySelectorAll('button');
             buttons.forEach(btn => {
               const label = btn.getAttribute('aria-label') || '';
               const text = btn.textContent || '';
               
-              // Daha, more, devam, etc. butonlarını tıkla
               if ((label.toLowerCase().match(/daha|more|devam|expand|weiterlesen/)) ||
                   (text.toLowerCase().match(/daha|more|devam|expand/))) {
                 try {
@@ -553,13 +538,10 @@ app.post("/scrape", async (req, res) => {
           }
         } catch (e) {}
       });
-      
-      console.log(`Expanded: ${expandedCount} button`);
     });
     
     await delay(3000);
     
-    // Sayfa URL'sini güvenli şekilde al
     let currentPageUrl = '';
     try {
       currentPageUrl = page.url();
@@ -572,7 +554,6 @@ app.post("/scrape", async (req, res) => {
       const results = [];
       const seenIds = new Set();
       
-      // Tüm olası review selektörleri
       const reviewElements = Array.from(
         document.querySelectorAll('[data-review-id], .jftiEf, .Nv2PK, div[jsaction*="pane.review"], .jftiEf.Nv2PK')
       );
@@ -584,7 +565,6 @@ app.post("/scrape", async (req, res) => {
       
       reviewElements.forEach((card, idx) => {
         try {
-          // Unique ID
           const uniqueId = card.getAttribute('data-review-id') || 
                           card.getAttribute('data-id') || 
                           `auto-${idx}-${Math.random()}`;
@@ -594,7 +574,6 @@ app.post("/scrape", async (req, res) => {
             return;
           }
           
-          // RATING - önce bul
           let rating = null;
           const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
           if (starEl) {
@@ -603,7 +582,6 @@ app.post("/scrape", async (req, res) => {
             if (match) rating = parseInt(match[1]);
           }
           
-          // Rating filter
           if (!rating || rating > 2) {
             ratingFilterCount++;
             return;
@@ -611,7 +589,6 @@ app.post("/scrape", async (req, res) => {
           
           seenIds.add(uniqueId);
           
-          // TEXT - çok geniş arama
           let text = '';
           const textSelectors = [
             '.wiI7pd',
@@ -631,9 +608,7 @@ app.post("/scrape", async (req, res) => {
             const textEls = card.querySelectorAll(sel);
             for (const textEl of textEls) {
               const candidate = textEl.textContent.trim();
-              // En az 8 karakter, en fazla 5000 karakter
               if (candidate.length > 8 && candidate.length < 5000) {
-                // Spam filtresi - çok kısa kelimeler yok
                 if (!candidate.match(/^[^\w\s]{20,}$/)) {
                   text = candidate;
                   break;
@@ -643,7 +618,6 @@ app.post("/scrape", async (req, res) => {
             if (text) break;
           }
           
-          // AUTHOR
           let author = '';
           const authorSelectors = ['.d4r55', '.WNxzHc', 'button.WEBjve', '.X4JkJ', 'h3', '.F0gzrf'];
           for (const sel of authorSelectors) {
@@ -657,7 +631,6 @@ app.post("/scrape", async (req, res) => {
             }
           }
           
-          // DATE
           let date = '';
           const dateSelectors = ['.rsqaWe', 'span.rsqaWe', '.WNxzHc + span', '[data-date]'];
           for (const sel of dateSelectors) {
@@ -668,7 +641,6 @@ app.post("/scrape", async (req, res) => {
             }
           }
           
-          // Başarı - en az rating'i var
           results.push({
             rating,
             text: text || '(Metin yok)',
