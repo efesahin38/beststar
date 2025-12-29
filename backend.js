@@ -441,7 +441,7 @@ let scrollCount = 0;
 let threeStarAppeared = false;
 const MAX_SCROLL = 250;
 const STABLE_LIMIT = 15;
-const MAX_REVIEWS = 500; // maksimum çekilecek 1-2⭐ yorum sayısı
+const MAX_REVIEWS = 100; // maksimum çekilecek 1-2⭐ yorum sayısı
 
 const scrapedReviews = []; // ← değiştirildi, tüm scroll yorumları burada biriktiriliyor
 
@@ -527,128 +527,52 @@ console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${oneTwoStarCou
     // ==========================================
     // 8. YORUMLARI PARSE ET
     // ==========================================
-    console.log("🔍 Yorumlar parse ediliyor...");
-    
-    // Expand butonlarını tıkla
-    await page.evaluate(() => {
-      const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf'));
-      reviewElements.forEach(card => {
-        const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
-        if (!starEl) return;
-        
-        const match = starEl.getAttribute('aria-label')?.match(/(\d+)/);
-        if (!match) return;
-        const rating = parseInt(match[1]);
-        
-        if (rating <= 2) {
-          const expandBtns = card.querySelectorAll('button[aria-label*="daha" i], button[aria-label*="more" i], button.w8nwRe, button[jsaction*="review.expandReview"]');
-          expandBtns.forEach(btn => {
-            try {
-              if (btn.offsetHeight > 0) btn.click();
-            } catch (e) {}
-          });
-        }
-      });
-    });
-    
-    await delay(1500);
-    
-    const reviews = await page.evaluate(() => {
-      const results = [];
-      const seenHashes = new Set();
-      
-      const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf, div[jsaction*="pane.review"]'));
-      
-      reviewElements.forEach((card) => {
-        try {
-          // Yıldız
-          let rating = null;
-          const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
-          if (starEl) {
-            const ariaLabel = starEl.getAttribute('aria-label') || '';
-            const match = ariaLabel.match(/(\d+)/);
-            if (match) rating = parseInt(match[1]);
-          }
-          
-          if (!rating || rating > 2) return;
-          
-          // Metin
-          let text = '';
-          const textSelectors = ['.wiI7pd', 'span[data-expandable-section]', '.MyEned', 'span[jsan]'];
-          for (const sel of textSelectors) {
-            const textEl = card.querySelector(sel);
-            if (textEl && textEl.textContent) {
-              text = textEl.textContent.trim();
-              if (text.length > 10) break;
-            }
-          }
-          
-          // Yazar
-          let author = 'Anonim';
-          const authorSelectors = ['.d4r55', '.WNxzHc', 'button.WEBjve'];
-          for (const sel of authorSelectors) {
-            const authorEl = card.querySelector(sel);
-            if (authorEl && authorEl.textContent) {
-              author = authorEl.textContent.trim().split('·')[0].trim();
-              if (author.length > 0) break;
-            }
-          }
-          
-          // Tarih
-          let date = '';
-          const dateSelectors = ['.rsqaWe', 'span.rsqaWe'];
-          for (const sel of dateSelectors) {
-            const dateEl = card.querySelector(sel);
-            if (dateEl && dateEl.textContent) {
-              date = dateEl.textContent.trim();
-              break;
-            }
-          }
-          
-          // Hash ile unique kontrol
-          const hash = `${rating}|${author}|${text.substring(0, 80)}`;
-          if (seenHashes.has(hash)) return;
-          seenHashes.add(hash);
-          
-          results.push({ 
-            rating, 
-            text, 
-            author, 
-            date,
-            hasReview: text.length > 0 
-          });
-        } catch (e) {}
-      });
-      
-      return results;
-    });
+  const seen = new Set();
+const allReviews = [];
 
-    console.log(`✅ ${reviews.length} adet 1-2 yıldızlı yorum parse edildi`);
+for (const r of scrapedReviews) {
+  const hash = `${r.rating}|${r.author}|${r.text.slice(0, 80)}`;
+  if (!seen.has(hash)) {
+    seen.add(hash);
+    allReviews.push(r);
+  }
+}
 
-    const oneStar = reviews.filter(r => r.rating === 1);
-    const twoStar = reviews.filter(r => r.rating === 2);
+const oneStar = allReviews.filter(r => r.rating === 1);
+const twoStar = allReviews.filter(r => r.rating === 2);
 
-    console.log(`📊 1⭐: ${oneStar.length} | 2⭐: ${twoStar.length}`);
+console.log(`✅ TOPLAM 1-2⭐: ${allReviews.length}`);
+console.log(`📊 1⭐: ${oneStar.length} | 2⭐: ${twoStar.length}`);
 
     // ==========================================
     // 9. RESPONSE GÖNDER
     // ==========================================
-    res.json({
-      success: true,
-      name: businessInfo.name,
-      address: businessInfo.address,
-      place_url: finalPlaceUrl,
-      "1_star": oneStar.length,
-      "2_star": twoStar.length,
-      "1_star_with_text": oneStar.filter(r => r.hasReview).length,
-      "1_star_without_text": oneStar.filter(r => !r.hasReview).length,
-      "2_star_with_text": twoStar.filter(r => r.hasReview).length,
-      "2_star_without_text": twoStar.filter(r => !r.hasReview).length,
-      reviews_1_star: oneStar,
-      reviews_2_star: twoStar,
-      total_reviews_scraped: reviews.length,
-      scroll_iterations: scrollCount
-    });
+ const total12Star = oneStar.length + twoStar.length;
+
+res.json({
+  success: true,
+  name: businessInfo.name,
+  address: businessInfo.address,
+  place_url: finalPlaceUrl,
+
+  "1_star": oneStar.length,
+  "2_star": twoStar.length,
+
+  "1_star_with_text": oneStar.filter(r => r.hasReview).length,
+  "1_star_without_text": oneStar.filter(r => !r.hasReview).length,
+
+  "2_star_with_text": twoStar.filter(r => r.hasReview).length,
+  "2_star_without_text": twoStar.filter(r => !r.hasReview).length,
+
+  reviews_1_star: oneStar,
+  reviews_2_star: twoStar,
+
+  // 🔴 EN KRİTİK DÜZELTME
+  total_reviews_scraped: total12Star,
+
+  scroll_iterations: scrollCount
+});
+
 
   } catch (err) {
     console.error("❌ HATA:", err.message);
@@ -668,6 +592,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
