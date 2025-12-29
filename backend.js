@@ -29,7 +29,6 @@ app.post("/scrape", async (req, res) => {
   try {
     console.log(`🔎 "${business}" aranıyor...`);
 
-    // Render.com 512MB optimizasyonu
     browser = await puppeteer.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium-browser",
@@ -54,14 +53,12 @@ app.post("/scrape", async (req, res) => {
     await page.setDefaultTimeout(120000);
     await page.setViewport({ width: 1280, height: 800 });
 
-    // Anti-detection
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
       Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
       Object.defineProperty(navigator, 'languages', { get: () => ['tr-TR', 'tr'] });
     });
 
-    // Cookie consent bypass
     await page.setCookie({
       name: 'CONSENT',
       value: 'YES+cb.20210720-07-p0.tr+FX+410',
@@ -113,7 +110,6 @@ app.post("/scrape", async (req, res) => {
     let placeFound = false;
     let finalPlaceUrl = "";
 
-    // STRATEJİ 1: Place link bekle (kısa timeout)
     if (!placeFound) {
       try {
         console.log("📍 Strateji 1: Place link (20 saniye)...");
@@ -126,7 +122,6 @@ app.post("/scrape", async (req, res) => {
           let bestMatch = 0;
           let bestScore = 0;
 
-          // İlk 3 linki kontrol et
           for (let i = 0; i < Math.min(3, placeLinks.length); i++) {
             const linkInfo = await page.evaluate(el => ({
               text: (el.textContent || '').trim().toLowerCase(),
@@ -156,7 +151,6 @@ app.post("/scrape", async (req, res) => {
       }
     }
 
-    // STRATEJİ 2: Kart selectors
     if (!placeFound) {
       try {
         console.log("📍 Strateji 2: Kart selectors...");
@@ -185,7 +179,6 @@ app.post("/scrape", async (req, res) => {
       }
     }
 
-    // STRATEJİ 3: Direkt URL'ye git
     if (!placeFound) {
       try {
         console.log("📍 Strateji 3: Direkt URL...");
@@ -206,7 +199,6 @@ app.post("/scrape", async (req, res) => {
       }
     }
 
-    // STRATEJİ 4: Koordinat tıklama
     if (!placeFound) {
       try {
         console.log("📍 Strateji 4: Koordinat tıklama...");
@@ -234,90 +226,77 @@ app.post("/scrape", async (req, res) => {
     console.log(`🔗 Place URL: ${finalPlaceUrl.substring(0, 100)}...`);
 
     // ==========================================
-    // 4. İŞLETME BİLGİLERİNİ AL - DOĞRU ADRES GARANTİLİ
+    // 4. İŞLETME BİLGİLERİNİ AL
     // ==========================================
     console.log("📋 İşletme bilgileri alınıyor...");
     await page.waitForSelector(
-  'button[data-item-id="address"], h1.DUwDvf, h1',
-  { timeout: 20000 }
-).catch(() => console.log('⚠️ Detay panel geç yüklendi'));
+      'button[data-item-id="address"], h1.DUwDvf, h1',
+      { timeout: 20000 }
+    ).catch(() => console.log('⚠️ Detay panel geç yüklendi'));
     
-    // İsim için bekle
     await page.waitForSelector('h1.DUwDvf, h1', { timeout: 15000 }).catch(() => 
       console.log("⚠️ H1 bulunamadı")
     );
     await delay(3000);
     
-const businessInfo = await page.evaluate((currentUrl) => {
-  // =========================
-  // İŞLETME ADI - URL'DEN ÇEK (EN GÜVENİLİR YÖNTEM)
-  // =========================
-  let name = 'İşletme adı bulunamadı';
+    const businessInfo = await page.evaluate((currentUrl) => {
+      let name = 'İşletme adı bulunamadı';
 
-  // URL'den place adı çıkar (Google Maps URL'leri /place/İşletme+Adı/ şeklinde)
-  const urlParts = currentUrl.split('/place/');
-  if (urlParts.length > 1) {
-    const placePart = urlParts[1].split('/')[0];
-    name = decodeURIComponent(placePart.replace(/\+/g, ' ')).trim();
-  }
-
-  // Eğer URL'den çıkmazsa panel selector'ları dene (fallback)
-  if (name === 'İşletme adı bulunamadı' || name.length < 3) {
-    const nameSelectors = [
-      'h1.DUwDvf',
-      'h1.DUwDvf span',
-      'h1 span',
-      '.x3AX1-LfntMc-header-title-title span',
-      '.DUwDvf.fontHeadlineLarge span',
-      'h1'
-    ];
-    for (const sel of nameSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.textContent?.trim().length > 3) {
-        name = el.textContent.trim();
-        break;
+      const urlParts = currentUrl.split('/place/');
+      if (urlParts.length > 1) {
+        const placePart = urlParts[1].split('/')[0];
+        name = decodeURIComponent(placePart.replace(/\+/g, ' ')).trim();
       }
-    }
-  }
 
-  // =========================
-  // ADRES - PANELDEN + AKILLI FALLBACK
-  // =========================
-  let address = 'Adres Google Maps\'te belirtilmemiş (kampüs içi küçük işletme olabilir)';
-
-  // 1. Normal adres butonu varsa çek
-  const addressBtn = document.querySelector('button[data-item-id="address"], button[aria-label*="Address" i], button[aria-label*="Adres" i]');
-  if (addressBtn) {
-    const textEl = addressBtn.querySelector('.fontBodyMedium, .Io6YTe, span, div');
-    if (textEl && textEl.textContent?.trim().length > 10) {
-      address = textEl.textContent.trim();
-    }
-  }
-
-  // 2. Alternatif selector'lar
-  if (address.includes('belirtilmemiş')) {
-    const altSelectors = ['.Io6YTe', '.fontBodyMedium', '.rogA2c .Io6YTe'];
-    for (const sel of altSelectors) {
-      const el = document.querySelector(sel);
-      if (el && el.textContent?.trim().length > 12) {
-        address = el.textContent.trim();
-        break;
+      if (name === 'İşletme adı bulunamadı' || name.length < 3) {
+        const nameSelectors = [
+          'h1.DUwDvf',
+          'h1.DUwDvf span',
+          'h1 span',
+          '.x3AX1-LfntMc-header-title-title span',
+          '.DUwDvf.fontHeadlineLarge span',
+          'h1'
+        ];
+        for (const sel of nameSelectors) {
+          const el = document.querySelector(sel);
+          if (el && el.textContent?.trim().length > 3) {
+            name = el.textContent.trim();
+            break;
+          }
+        }
       }
-    }
-  }
 
-  // 3. Özel bilinen adresler (Golm Dönerhaus ve benzeri yaygın sorunlu yerler)
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('golm dönerhaus') || currentUrl.includes('Golm+Dönerhaus')) {
-    address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam, Almanya';
-  }
+      let address = 'Adres Google Maps\'te belirtilmemiş (kampüs içi küçük işletme olabilir)';
 
-  return { name, address };
-}, page.url());  // <-- current URL'yi evaluate'e parametre olarak gönder
+      const addressBtn = document.querySelector('button[data-item-id="address"], button[aria-label*="Address" i], button[aria-label*="Adres" i]');
+      if (addressBtn) {
+        const textEl = addressBtn.querySelector('.fontBodyMedium, .Io6YTe, span, div');
+        if (textEl && textEl.textContent?.trim().length > 10) {
+          address = textEl.textContent.trim();
+        }
+      }
+
+      if (address.includes('belirtilmemiş')) {
+        const altSelectors = ['.Io6YTe', '.fontBodyMedium', '.rogA2c .Io6YTe'];
+        for (const sel of altSelectors) {
+          const el = document.querySelector(sel);
+          if (el && el.textContent?.trim().length > 12) {
+            address = el.textContent.trim();
+            break;
+          }
+        }
+      }
+
+      const lowerName = name.toLowerCase();
+      if (lowerName.includes('golm dönerhaus') || currentUrl.includes('Golm+Dönerhaus')) {
+        address = 'Karl-Liebknecht-Straße 28, 14476 Potsdam, Almanya';
+      }
+
+      return { name, address };
+    }, page.url());
     
     console.log("🏢 İşletme:", businessInfo.name);
     console.log("📍 Adres:", businessInfo.address);
-    
 
     // ==========================================
     // 5. YORUMLAR SEKMESİNİ AÇ
@@ -384,7 +363,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
         console.log("✅ Sıralama menüsü açıldı");
         await delay(1000);
         
-        // En düşük puanlı seç
         const lowestSelectors = [
           '[data-index="1"]',
           'div[role="menuitemradio"]:nth-child(2)',
@@ -409,7 +387,7 @@ const businessInfo = await page.evaluate((currentUrl) => {
     }
 
     // ==========================================
-    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK
+    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK (OPTIMIZE)
     // ==========================================
     console.log("📜 Scroll başlatılıyor (TÜM 1-2 yıldızlı yorumlar çekilecek)...");
     
@@ -417,28 +395,24 @@ const businessInfo = await page.evaluate((currentUrl) => {
     let lastOneTwoStarCount = 0;
     let stableStreak = 0;
     let scrollCount = 0;
-    let threeStarAppeared = false;
     const MAX_SCROLL = 250;
-    const STABLE_LIMIT = 15;
+    const STABLE_LIMIT = 10; // Daha erken durması için 15'ten 10'a indirildi
+    const MIN_REVIEWS_TO_STOP = 3; // En az 3 yorum bulunduktan sonra sabitse dur
     
     for (let i = 0; i < MAX_SCROLL; i++) {
-      const { totalReviews, oneTwoStars, hasThreeStar } = await page.evaluate(() => {
-        // Scroll container'ı bul
+      const { totalReviews, oneTwoStars } = await page.evaluate(() => {
         const container = document.querySelector('.m6QErb.DxyBCb.kA9KIf.dS8AEf') ||
                           document.querySelector('.m6QErb') ||
                           document.querySelector('div[role="region"]') ||
                           document.querySelector('[role="main"]');
         
-        if (!container) return { totalReviews: 0, oneTwoStars: 0, hasThreeStar: false };
+        if (!container) return { totalReviews: 0, oneTwoStars: 0 };
         
-        // Scroll yap
         container.scrollTop = container.scrollHeight;
         
-        // Yorum elementlerini say
         const reviewElements = document.querySelectorAll('[data-review-id], .jftiEf');
         
         let oneTwoCount = 0;
-        let hasThree = false;
         
         reviewElements.forEach(card => {
           const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
@@ -448,43 +422,36 @@ const businessInfo = await page.evaluate((currentUrl) => {
             if (match) {
               const rating = parseInt(match[1]);
               if (rating === 1 || rating === 2) oneTwoCount++;
-              if (rating === 3) hasThree = true;
             }
           }
         });
         
         return { 
           totalReviews: reviewElements.length, 
-          oneTwoStars: oneTwoCount,
-          hasThreeStar: hasThree 
+          oneTwoStars: oneTwoCount
         };
       });
       
       scrollCount++;
       oneTwoStarCount = oneTwoStars;
       
-      // 3 yıldız takibi
-      if (hasThreeStar && !threeStarAppeared) {
-        console.log("⭐ 3 yıldızlı yorum görüldü (devam ediliyor)");
-        threeStarAppeared = true;
-      }
-      
       // 1-2 yıldız sayısı değişti mi?
       if (oneTwoStarCount === lastOneTwoStarCount) {
         stableStreak++;
       } else {
         stableStreak = 0;
+        lastOneTwoStarCount = oneTwoStarCount;
       }
-      lastOneTwoStarCount = oneTwoStarCount;
       
-      // Log
+      // Log (her 10'da bir)
       if (i % 10 === 0) {
         console.log(`📊 Scroll ${i} | Toplam: ${totalReviews} | 1-2⭐: ${oneTwoStarCount} | Sabit: ${stableStreak}`);
       }
       
-      // Durma kriterleri
-      if (stableStreak >= STABLE_LIMIT && oneTwoStarCount >= 5) {
-        console.log("🛑 1-2 yıldız artık çıkmıyor, tamamlandı!");
+      // ERKEN DURMA - Optimize edilmiş koşullar
+      // 3+ yorum bulunmuş ve 10 iterasyon boyunca değişmemişse dur
+      if (oneTwoStarCount >= MIN_REVIEWS_TO_STOP && stableStreak >= STABLE_LIMIT) {
+        console.log(`🛑 Yorum sayısı sabitlendi (${oneTwoStarCount} adet), durduruluyor!`);
         break;
       }
       
@@ -499,7 +466,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
     // ==========================================
     console.log("🔍 Yorumlar parse ediliyor...");
     
-    // Expand butonlarını tıkla
     await page.evaluate(() => {
       const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf'));
       reviewElements.forEach(card => {
@@ -531,7 +497,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
       
       reviewElements.forEach((card) => {
         try {
-          // Yıldız
           let rating = null;
           const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
           if (starEl) {
@@ -542,7 +507,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
           
           if (!rating || rating > 2) return;
           
-          // Metin
           let text = '';
           const textSelectors = ['.wiI7pd', 'span[data-expandable-section]', '.MyEned', 'span[jsan]'];
           for (const sel of textSelectors) {
@@ -553,7 +517,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
             }
           }
           
-          // Yazar
           let author = 'Anonim';
           const authorSelectors = ['.d4r55', '.WNxzHc', 'button.WEBjve'];
           for (const sel of authorSelectors) {
@@ -564,7 +527,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
             }
           }
           
-          // Tarih
           let date = '';
           const dateSelectors = ['.rsqaWe', 'span.rsqaWe'];
           for (const sel of dateSelectors) {
@@ -575,7 +537,6 @@ const businessInfo = await page.evaluate((currentUrl) => {
             }
           }
           
-          // Hash ile unique kontrol
           const hash = `${rating}|${author}|${text.substring(0, 80)}`;
           if (seenHashes.has(hash)) return;
           seenHashes.add(hash);
@@ -638,15 +599,3 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
-
-
-
-
-
-
-
-
-
-
-
-
