@@ -70,16 +70,25 @@ page.on('request', (req) => {
   const resourceType = req.resourceType();
   const url = req.url();
 
-  // Resimleri ve Google'ın profil fotoğraflarını (en büyük RAM tüketicileri) tamamen blokla
-  if (
-    resourceType === 'image' ||
-    resourceType === 'media' ||
-    url.includes('googleusercontent.com') ||  // Profil fotoğrafları
-    url.includes('lh3.googleusercontent.com') || // Eski profil foto linkleri
-    url.includes('yt3.ggpht.com') // YouTube kanal fotoğrafları (yorumlarda çıkabiliyor)
-  ) {
+  // 1. Genel image ve media'ları blokla (reklam, icon, harita tile'ları vs.)
+  if (resourceType === 'image' || resourceType === 'media') {
+    // AMA profil fotoğraflarını serbest bırak (yorumların yüklenmesi için şart)
+    if (
+      url.includes('googleusercontent.com') ||
+      url.includes('lh3.googleusercontent.com') ||
+      url.includes('yt3.ggpht.com')
+    ) {
+      req.continue();  // Profil fotoğraflarını yükle
+    } else {
+      req.abort();     // Diğer tüm resimleri blokla
+    }
+  }
+  // 2. Fontları da blokla (büyük RAM tasarrufu, yorumlara etkisi yok)
+  else if (resourceType === 'font') {
     req.abort();
-  } else {
+  }
+  // 3. Diğer her şeyi (script, stylesheet, xhr vs.) normal geçir
+  else {
     req.continue();
   }
 });
@@ -667,6 +676,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
