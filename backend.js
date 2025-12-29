@@ -413,7 +413,7 @@ app.post("/scrape", async (req, res) => {
     let noIncreaseCounter = 0;
     let scrollCount = 0;
     const MAX_SCROLL = 500;
-    const NO_INCREASE_LIMIT = 2; // 2 defa artmazsa dur
+    const NO_INCREASE_LIMIT = 5; // 2 defa artmazsa dur
     
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
@@ -701,3 +701,4 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
