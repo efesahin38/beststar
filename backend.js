@@ -421,7 +421,7 @@ app.post("/scrape", async (req, res) => {
     let scrollCount = 0;
     const MAX_SCROLL = 800; // Daha fazla scroll
     const STABLE_LIMIT = 50; // ÇOOOOK uzun sabitleme (50 iterasyon)
-    const MIN_REVIEWS_TO_STOP = 9; // En az 5 yorum (düşük threshold)
+    const MIN_REVIEWS_TO_STOP = 7; // En az 5 yorum (düşük threshold)
     
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
@@ -732,6 +732,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
