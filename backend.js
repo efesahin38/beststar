@@ -418,8 +418,8 @@ const businessInfo = await page.evaluate((currentUrl) => {
     let stableStreak = 0;
     let scrollCount = 0;
     let threeStarAppeared = false;
-    const MAX_SCROLL = 400;
-    const STABLE_LIMIT = 10;
+    const MAX_SCROLL = 250;
+    const STABLE_LIMIT = 15;
     
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars, hasThreeStar } = await page.evaluate(() => {
@@ -638,7 +638,6 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
-
 
 
 
