@@ -441,7 +441,7 @@ let scrollCount = 0;
 let threeStarAppeared = false;
 const MAX_SCROLL = 250;
 const STABLE_LIMIT = 15;
-const MAX_REVIEWS = 100; // maksimum çekilecek 1-2⭐ yorum sayısı
+const MAX_REVIEWS = 500; // maksimum çekilecek 1-2⭐ yorum sayısı
 
 const scrapedReviews = []; // ← değiştirildi, tüm scroll yorumları burada biriktiriliyor
 
@@ -668,6 +668,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
