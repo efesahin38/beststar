@@ -434,7 +434,7 @@ const businessInfo = await page.evaluate((currentUrl) => {
     // ==========================================
     console.log("📜 Scroll başlatılıyor (TÜM 1-2 yıldızlı yorumlar çekilecek)...");
     
-  let oneTwoStarCount = 0;
+let oneTwoStarCount = 0;
 let lastOneTwoStarCount = 0;
 let stableStreak = 0;
 let scrollCount = 0;
@@ -443,7 +443,7 @@ const MAX_SCROLL = 250;
 const STABLE_LIMIT = 15;
 const MAX_REVIEWS = 100; // maksimum çekilecek 1-2⭐ yorum sayısı
 
-const reviews = []; // tüm yorumları burada biriktiriyoruz
+const scrapedReviews = []; // ← değiştirildi, tüm scroll yorumları burada biriktiriliyor
 
 for (let i = 0; i < MAX_SCROLL; i++) {
   scrollCount++;
@@ -488,9 +488,9 @@ for (let i = 0; i < MAX_SCROLL; i++) {
     return { newReviews: results, hasThreeStar: hasThree };
   });
 
-  // Yeni yorumları reviews array'ine ekle
-  reviews.push(...newReviews);
-  oneTwoStarCount = reviews.length;
+  // Yeni yorumları scrapedReviews array'ine ekle
+  scrapedReviews.push(...newReviews);
+  oneTwoStarCount = scrapedReviews.length;
 
   // 3 yıldız takibi
   if (hasThreeStar && !threeStarAppeared) threeStarAppeared = true;
@@ -511,7 +511,7 @@ for (let i = 0; i < MAX_SCROLL; i++) {
     break;
   }
 
-  if (reviews.length >= MAX_REVIEWS) {
+  if (scrapedReviews.length >= MAX_REVIEWS) {
     console.log(`🛑 Maksimum ${MAX_REVIEWS} yorum çekildi, scroll durduruldu!`);
     break;
   }
@@ -520,6 +520,7 @@ for (let i = 0; i < MAX_SCROLL; i++) {
 }
 
 console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${oneTwoStarCount} adet 1-2⭐`);
+
 
     await delay(2000);
 
@@ -667,6 +668,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
