@@ -404,18 +404,16 @@ app.post("/scrape", async (req, res) => {
     }
 
     // ==========================================
-    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK
+    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK (YENİ LOJİK)
     // ==========================================
-    console.log("📜 Scroll başlatılıyor (TÜM 1-2 yıldızlı yorumlar çekilecek)...");
+    console.log("📜 Scroll başlatılıyor...");
     
     let oneTwoStarCount = 0;
-    let totalReviewsCount = 0;
     let lastOneTwoStarCount = 0;
-    let lastTotalReviewsCount = 0;
-    let noChangeCount = 0;
+    let noIncreaseCounter = 0;
     let scrollCount = 0;
     const MAX_SCROLL = 500;
-    const NO_CHANGE_LIMIT = 2;
+    const NO_INCREASE_LIMIT = 2; // 2 defa artmazsa dur
     
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
@@ -475,29 +473,28 @@ app.post("/scrape", async (req, res) => {
       });
       
       scrollCount++;
-      totalReviewsCount = totalReviews;
-      oneTwoStarCount = oneTwoStars;
       
-      if (totalReviewsCount === lastTotalReviewsCount && oneTwoStarCount === lastOneTwoStarCount) {
-        noChangeCount++;
-        console.log(`📊 Scroll ${i} | Toplam: ${totalReviewsCount} | 1-2⭐: ${oneTwoStarCount} | Değişim yok: ${noChangeCount}/${NO_CHANGE_LIMIT}`);
+      // Eğer 1-2 yıldız sayısı artmadıysa counter'ı artır
+      if (oneTwoStars === lastOneTwoStarCount) {
+        noIncreaseCounter++;
+        console.log(`📊 Scroll ${i} | Toplam: ${totalReviews} | 1-2⭐: ${oneTwoStars} | Artış yok: ${noIncreaseCounter}/${NO_INCREASE_LIMIT}`);
         
-        if (noChangeCount >= NO_CHANGE_LIMIT) {
-          console.log(`🛑 ${NO_CHANGE_LIMIT} iterasyondır değişim yok, durduruluyor!`);
+        // 2 kez artmadıysa dur
+        if (noIncreaseCounter >= NO_INCREASE_LIMIT) {
+          console.log(`🛑 1-2 yıldız sayısı 2 kez artmadı (${oneTwoStars} adet), durduruluyor!`);
           break;
         }
       } else {
-        noChangeCount = 0;
-        console.log(`📊 Scroll ${i} | Toplam: ${totalReviewsCount} | 1-2⭐: ${oneTwoStarCount} | ✨ Yeni yorum!`);
+        // Artmışsa counter'ı sıfırla
+        noIncreaseCounter = 0;
+        console.log(`📊 Scroll ${i} | Toplam: ${totalReviews} | 1-2⭐: ${oneTwoStars} | ✅ Artış var`);
       }
       
-      lastTotalReviewsCount = totalReviewsCount;
-      lastOneTwoStarCount = oneTwoStarCount;
-      
+      lastOneTwoStarCount = oneTwoStars;
       await delay(800 + Math.random() * 300);
     }
     
-    console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${oneTwoStarCount} adet 1-2⭐`);
+    console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${lastOneTwoStarCount} adet 1-2⭐`);
     await delay(2000);
 
     // ==========================================
