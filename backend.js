@@ -31,7 +31,7 @@ app.post("/scrape", async (req, res) => {
 
     // Render.com 512MB optimizasyonu
     browser = await puppeteer.launch({
-      headless: new,
+      headless:'new',
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium-browser",
       args: [
         "--no-sandbox",
@@ -667,6 +667,7 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
+
 
 
 
