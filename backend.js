@@ -419,9 +419,9 @@ app.post("/scrape", async (req, res) => {
     let lastOneTwoStarCount = 0;
     let stableStreak = 0;
     let scrollCount = 0;
-    const MAX_SCROLL = 300; // Daha uzun scroll
-    const STABLE_LIMIT = 40; // Daha uzun sabitleme (40 iterasyon)
-    const MIN_STABLE_BEFORE_STOP = 30; // En az 30 iterasyon scroll yap
+    const MAX_SCROLL = 800; // ÇOOOOK uzun scroll
+    const STABLE_LIMIT = 100; // ÇOOOOK uzun sabitleme
+    const MIN_STABLE_BEFORE_STOP = 50; // Min 50 iterasyon yap
 
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
