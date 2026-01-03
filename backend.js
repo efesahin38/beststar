@@ -411,7 +411,7 @@ app.post("/scrape", async (req, res) => {
     }
 
     // ==========================================
-    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK
+    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK (IMPROVED)
     // ==========================================
     console.log("📜 Scroll başlatılıyor...");
 
@@ -419,9 +419,9 @@ app.post("/scrape", async (req, res) => {
     let lastOneTwoStarCount = 0;
     let stableStreak = 0;
     let scrollCount = 0;
-    const MAX_SCROLL = 150;
-    const STABLE_LIMIT = 15;
-    const MIN_REVIEWS_TO_STOP = 3;
+    const MAX_SCROLL = 300; // Daha uzun scroll
+    const STABLE_LIMIT = 40; // Daha uzun sabitleme (40 iterasyon)
+    const MIN_STABLE_BEFORE_STOP = 30; // En az 30 iterasyon scroll yap
 
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
@@ -445,7 +445,8 @@ app.post("/scrape", async (req, res) => {
           return { totalReviews: 0, oneTwoStars: 0 };
         }
         
-        container.scrollTop = container.scrollHeight + 2000;
+        // Çok agresif scroll
+        container.scrollTop = container.scrollHeight + 5000;
         
         const reviewElements = Array.from(
           document.querySelectorAll('[data-review-id], .jftiEf.Nv2PK')
@@ -483,20 +484,26 @@ app.post("/scrape", async (req, res) => {
       }
       lastOneTwoStarCount = oneTwoStarCount;
       
-      if (i % 5 === 0) {
+      if (i % 10 === 0) {
         console.log(`📊 Scroll ${i} | Toplam: ${totalReviews} | 1-2⭐: ${oneTwoStarCount} | Sabit: ${stableStreak}`);
       }
       
-      if (oneTwoStarCount >= MIN_REVIEWS_TO_STOP && stableStreak >= STABLE_LIMIT) {
-        console.log(`🛑 Yorum sayısı sabitlendi (${oneTwoStarCount} adet), DURDURULUYOR!`);
+      // KOŞUL: min 30 iterasyon yap + 40 iterasyon sabitlenmiş
+      if (i >= MIN_STABLE_BEFORE_STOP && stableStreak >= STABLE_LIMIT) {
+        console.log(`🛑 Yorum sayısı sabitlendi (${oneTwoStarCount} adet, ${stableStreak} iterasyon), DURDURULUYOR!`);
         break;
       }
       
-      await delay(400 + Math.random() * 200);
+      // MAX_SCROLL'a ulaştık
+      if (i === MAX_SCROLL - 1) {
+        console.log(`🛑 Maximum scroll sınırına ulaşıldı (${oneTwoStarCount} adet)`);
+      }
+      
+      await delay(300 + Math.random() * 200);
     }
 
     console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${oneTwoStarCount} adet 1-2⭐`);
-    await delay(2000);
+    await delay(3000);
 
     // ==========================================
     // 8. EXPAND ET
