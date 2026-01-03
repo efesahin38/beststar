@@ -411,18 +411,18 @@ app.post("/scrape", async (req, res) => {
     }
 
     // ==========================================
-    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK (AGGRESSIVE)
+    // 7. SCROLL - TÜM 1-2 YILDIZLARI ÇEK
     // ==========================================
-    console.log("📜 Scroll başlatılıyor (TÜM 1-2 yıldızlı yorumlar çekilecek)...");
-    
+    console.log("📜 Scroll başlatılıyor...");
+
     let oneTwoStarCount = 0;
     let lastOneTwoStarCount = 0;
     let stableStreak = 0;
     let scrollCount = 0;
-    const MAX_SCROLL = 700; // Daha fazla scroll
-    const STABLE_LIMIT = 50; // ÇOOOOK uzun sabitleme (50 iterasyon)
-    const MIN_REVIEWS_TO_STOP = 7; // En az 5 yorum (düşük threshold)
-    
+    const MAX_SCROLL = 150;
+    const STABLE_LIMIT = 15;
+    const MIN_REVIEWS_TO_STOP = 3;
+
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
         const containers = [
@@ -435,58 +435,47 @@ app.post("/scrape", async (req, res) => {
         
         let container = null;
         for (const c of containers) {
-          if (c) {
+          if (c && c.scrollHeight > 500) {
             container = c;
             break;
           }
         }
         
-        if (!container) return { totalReviews: 0, oneTwoStars: 0 };
+        if (!container) {
+          return { totalReviews: 0, oneTwoStars: 0 };
+        }
         
-        // Daha agresif scroll
-        container.scrollTop = container.scrollHeight;
+        container.scrollTop = container.scrollHeight + 2000;
         
-        // Tüm review'ları bul (çoklu selector)
         const reviewElements = Array.from(
-          document.querySelectorAll('[data-review-id], .jftiEf, .Nv2PK, div[jsaction*="pane.review"]')
+          document.querySelectorAll('[data-review-id], .jftiEf.Nv2PK')
         );
         
-        // Duplikatları filter'le
-        const uniqueElements = [];
+        let oneTwoCount = 0;
         const seenIds = new Set();
         
-        reviewElements.forEach(el => {
-          const id = el.getAttribute('data-review-id') || el.getAttribute('data-id') || el.textContent.substring(0, 50);
-          if (!seenIds.has(id)) {
-            seenIds.add(id);
-            uniqueElements.push(el);
-          }
-        });
-        
-        let oneTwoCount = 0;
-        
-        uniqueElements.forEach(card => {
-          const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
+        reviewElements.forEach(card => {
+          const id = card.getAttribute('data-review-id');
+          if (!id || seenIds.has(id)) return;
+          seenIds.add(id);
+          
+          const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i]');
           if (starEl) {
             const ariaLabel = starEl.getAttribute('aria-label') || '';
             const match = ariaLabel.match(/(\d+)/);
             if (match) {
               const rating = parseInt(match[1]);
-              if (rating === 1 || rating === 2) oneTwoCount++;
+              if (rating <= 2) oneTwoCount++;
             }
           }
         });
         
-        return { 
-          totalReviews: uniqueElements.length, 
-          oneTwoStars: oneTwoCount
-        };
+        return { totalReviews: reviewElements.length, oneTwoStars: oneTwoCount };
       });
       
       scrollCount++;
       oneTwoStarCount = oneTwoStars;
       
-      // 1-2 yıldız sayısı değişti mi?
       if (oneTwoStarCount === lastOneTwoStarCount) {
         stableStreak++;
       } else {
@@ -494,200 +483,127 @@ app.post("/scrape", async (req, res) => {
       }
       lastOneTwoStarCount = oneTwoStarCount;
       
-      // Log (her 10'da bir)
-      if (i % 10 === 0) {
+      if (i % 5 === 0) {
         console.log(`📊 Scroll ${i} | Toplam: ${totalReviews} | 1-2⭐: ${oneTwoStarCount} | Sabit: ${stableStreak}`);
       }
       
-      // ERKEN DURMA - Daha uzun sabitleme gerekli
       if (oneTwoStarCount >= MIN_REVIEWS_TO_STOP && stableStreak >= STABLE_LIMIT) {
-        console.log(`🛑 Yorum sayısı sabitlendi (${oneTwoStarCount} adet, ${stableStreak} iterasyon), durduruluyor!`);
+        console.log(`🛑 Yorum sayısı sabitlendi (${oneTwoStarCount} adet), DURDURULUYOR!`);
         break;
       }
       
-      await delay(800 + Math.random() * 300);
+      await delay(400 + Math.random() * 200);
     }
-    
+
     console.log(`✅ Scroll tamamlandı | ${scrollCount} iterasyon | ${oneTwoStarCount} adet 1-2⭐`);
     await delay(2000);
 
     // ==========================================
-    // 8. YORUMLARI EXPAND ET VE PARSE
+    // 8. EXPAND ET
     // ==========================================
-    console.log("🔍 Tüm 1-2 yıldızlı yorumlar expand ediliyor...");
-    
-    // 2000ms expand işlemlerine zaman ver
+    console.log("🔍 Yorumlar expand ediliyor...");
+
     await page.evaluate(() => {
-      const reviewElements = Array.from(document.querySelectorAll('[data-review-id], .jftiEf, .Nv2PK, div[jsaction*="pane.review"]'));
+      const reviewElements = Array.from(document.querySelectorAll('[data-review-id]'));
       let expandedCount = 0;
       
-      reviewElements.forEach((card) => {
+      reviewElements.forEach(card => {
         try {
-          // Star'ı bul
-          const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
+          const starEl = card.querySelector('[role="img"][aria-label*="star" i]');
           if (!starEl) return;
           
           const ariaLabel = starEl.getAttribute('aria-label') || '';
           const match = ariaLabel.match(/(\d+)/);
-          if (!match) return;
+          if (!match || parseInt(match[1]) > 2) return;
           
-          const rating = parseInt(match[1]);
-          if (rating <= 2) {
-            // Tüm expand button'larını bul ve tıkla
-            const buttons = card.querySelectorAll('button');
-            buttons.forEach(btn => {
-              const label = btn.getAttribute('aria-label') || '';
-              const text = btn.textContent || '';
-              
-              // Daha, more, devam, etc. butonlarını tıkla
-              if ((label.toLowerCase().match(/daha|more|devam|expand|weiterlesen/)) ||
-                  (text.toLowerCase().match(/daha|more|devam|expand/))) {
-                try {
-                  if (btn.offsetHeight > 0) {
-                    btn.click();
-                    expandedCount++;
-                  }
-                } catch (e) {}
-              }
-            });
-          }
+          const buttons = Array.from(card.querySelectorAll('button'));
+          buttons.forEach(btn => {
+            const ariaLabel = btn.getAttribute('aria-label') || '';
+            const text = btn.textContent || '';
+            
+            if ((ariaLabel.toLowerCase().match(/daha|more|expand/) ||
+                 text.toLowerCase().match(/daha|more/)) &&
+                btn.offsetHeight > 0) {
+              try {
+                btn.click();
+                expandedCount++;
+              } catch (e) {}
+            }
+          });
         } catch (e) {}
       });
       
       console.log(`Expanded: ${expandedCount} button`);
     });
-    
-    await delay(3000);
-    
-    // Sayfa URL'sini güvenli şekilde al
-    let currentPageUrl = '';
-    try {
-      currentPageUrl = page.url();
-    } catch (e) {
-      console.log("⚠️ URL alınamadı, fallback kullanılıyor");
-      currentPageUrl = finalPlaceUrl;
-    }
-    
+
+    await delay(2000);
+
+    // ==========================================
+    // 9. PARSE
+    // ==========================================
+    console.log("📋 Yorumlar parse ediliyor...");
+
     const reviews = await page.evaluate(() => {
       const results = [];
       const seenIds = new Set();
       
-      // Tüm olası review selektörleri
-      const reviewElements = Array.from(
-        document.querySelectorAll('[data-review-id], .jftiEf, .Nv2PK, div[jsaction*="pane.review"], .jftiEf.Nv2PK')
-      );
+      const reviewElements = Array.from(document.querySelectorAll('[data-review-id]'));
       
-      console.log(`Parse başlıyor: ${reviewElements.length} element`);
-      let successCount = 0;
-      let ratingFilterCount = 0;
-      let duplicateCount = 0;
+      console.log(`Parse: ${reviewElements.length} element bulundu`);
       
-      reviewElements.forEach((card, idx) => {
+      reviewElements.forEach((card) => {
         try {
-          // Unique ID
-          const uniqueId = card.getAttribute('data-review-id') || 
-                          card.getAttribute('data-id') || 
-                          `auto-${idx}-${Math.random()}`;
+          const uniqueId = card.getAttribute('data-review-id');
+          if (!uniqueId || seenIds.has(uniqueId)) return;
           
-          if (seenIds.has(uniqueId)) {
-            duplicateCount++;
-            return;
-          }
-          
-          // RATING - önce bul
+          // Rating
           let rating = null;
-          const starEl = card.querySelector('[role="img"][aria-label*="star" i], [role="img"][aria-label*="yıldız" i], [role="img"][aria-label*="Stern" i]');
+          const starEl = card.querySelector('[role="img"][aria-label*="star" i]');
           if (starEl) {
-            const ariaLabel = starEl.getAttribute('aria-label') || '';
-            const match = ariaLabel.match(/(\d+)/);
+            const match = (starEl.getAttribute('aria-label') || '').match(/(\d+)/);
             if (match) rating = parseInt(match[1]);
           }
           
-          // Rating filter
-          if (!rating || rating > 2) {
-            ratingFilterCount++;
-            return;
-          }
-          
+          if (!rating || rating > 2) return;
           seenIds.add(uniqueId);
           
-          // TEXT - çok geniş arama
+          // Text
           let text = '';
-          const textSelectors = [
-            '.wiI7pd',
-            'span[data-expandable-section]',
-            '.MyEned',
-            'span[jsan]',
-            '.fontBodyMedium',
-            'div.QXdOgf',
-            '.rogA2c',
-            'div[role="region"] > div > span',
-            'p',
-            'span:not([role])',
-            'div[jsaction*="click"]'
-          ];
-          
-          for (const sel of textSelectors) {
-            const textEls = card.querySelectorAll(sel);
-            for (const textEl of textEls) {
-              const candidate = textEl.textContent.trim();
-              // En az 8 karakter, en fazla 5000 karakter
-              if (candidate.length > 8 && candidate.length < 5000) {
-                // Spam filtresi - çok kısa kelimeler yok
-                if (!candidate.match(/^[^\w\s]{20,}$/)) {
-                  text = candidate;
-                  break;
-                }
-              }
-            }
-            if (text) break;
+          const textEl = card.querySelector('.wiI7pd, span[data-expandable-section], .MyEned');
+          if (textEl) {
+            text = textEl.textContent.trim().slice(0, 5000);
           }
           
-          // AUTHOR
+          // Author
           let author = '';
-          const authorSelectors = ['.d4r55', '.WNxzHc', 'button.WEBjve', '.X4JkJ', 'h3', '.F0gzrf'];
-          for (const sel of authorSelectors) {
-            const authorEl = card.querySelector(sel);
-            if (authorEl) {
-              const candidate = authorEl.textContent.trim().split('·')[0].split('•')[0].trim();
-              if (candidate.length > 0 && candidate.length < 100) {
-                author = candidate;
-                break;
-              }
-            }
+          const authorEl = card.querySelector('.d4r55, h3');
+          if (authorEl) {
+            author = authorEl.textContent.trim().split('·')[0].trim();
           }
           
-          // DATE
+          // Date
           let date = '';
-          const dateSelectors = ['.rsqaWe', 'span.rsqaWe', '.WNxzHc + span', '[data-date]'];
-          for (const sel of dateSelectors) {
-            const dateEl = card.querySelector(sel);
-            if (dateEl) {
-              date = dateEl.textContent.trim();
-              break;
-            }
+          const dateEl = card.querySelector('.rsqaWe');
+          if (dateEl) {
+            date = dateEl.textContent.trim();
           }
           
-          // Başarı - en az rating'i var
           results.push({
             rating,
             text: text || '(Metin yok)',
             author: author || 'Anonim',
             date: date || '',
-            hasReview: text.length > 0,
+            hasReview: text.length > 8,
             uniqueId
           });
-          
-          successCount++;
           
         } catch (e) {}
       });
       
-      console.log(`Parse Sonuç: ${successCount} başarılı, ${duplicateCount} duplicate, ${ratingFilterCount} düşük rating`);
       return results;
     });
 
-    console.log(`✅ ${reviews.length} adet 1-2 yıldızlı yorum başarıyla çekildi`);
+    console.log(`✅ ${reviews.length} yorum parse edildi`);
 
     const oneStar = reviews.filter(r => r.rating === 1);
     const twoStar = reviews.filter(r => r.rating === 2);
@@ -695,7 +611,7 @@ app.post("/scrape", async (req, res) => {
     console.log(`📊 1⭐: ${oneStar.length} | 2⭐: ${twoStar.length}`);
 
     // ==========================================
-    // 9. RESPONSE GÖNDER
+    // 10. RESPONSE GÖNDER
     // ==========================================
     res.json({
       success: true,
@@ -732,8 +648,3 @@ app.listen(PORT, () => {
   console.log(`💡 Test: http://localhost:${PORT}/health`);
   console.log(`💡 Debug: http://localhost:${PORT}/debug-chrome`);
 });
-
-
-
-
-
