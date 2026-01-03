@@ -419,9 +419,9 @@ app.post("/scrape", async (req, res) => {
     let lastOneTwoStarCount = 0;
     let stableStreak = 0;
     let scrollCount = 0;
-    const MAX_SCROLL = 800; // ÇOOOOK uzun scroll
-    const STABLE_LIMIT = 100; // ÇOOOOK uzun sabitleme
-    const MIN_STABLE_BEFORE_STOP = 50; // Min 50 iterasyon yap
+    const MAX_SCROLL = 2000; // MAXIMUM scroll - tüm yorumları taşıyacak kadar
+    const STABLE_LIMIT = 200; // MAXIMUM sabitleme - Google yavaş yüklesin diye
+    const MIN_STABLE_BEFORE_STOP = 100; // Min 100 iterasyon yap
 
     for (let i = 0; i < MAX_SCROLL; i++) {
       const { totalReviews, oneTwoStars } = await page.evaluate(() => {
