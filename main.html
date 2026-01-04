@@ -196,8 +196,10 @@
         </div>
         
         <!-- Mobile Menu -->
-        <div id="mobileMenu" class="lg:hidden fixed inset-0 mobile-menu-overlay bg-navy/95 transform translate-x-full transition-transform duration-300 z-40 overflow-y-auto">
-            <div class="flex flex-col h-full p-4 sm:p-8">
+<div id="mobileMenu" class="lg:hidden fixed inset-0 mobile-menu-overlay bg-navy/95 transform translate-x-full transition-transform duration-300 z-40">
+
+            <div class="flex flex-col min-h-screen p-4 sm:p-8 overflow-y-auto overscroll-contain">
+
                 <button onclick="toggleMenu()" class="self-end text-3xl sm:text-4xl mb-8 sm:mb-12 hover:text-ocean transition-colors p-2">✕</button>
                 <div class="flex flex-col space-y-6 sm:space-y-8 text-lg sm:text-2xl">
                     <a href="#anasayfa" onclick="toggleMenu()" class="hover:text-ocean transition-colors">Ana Sayfa</a>
@@ -796,4 +798,5 @@
     </script>
 </body>
 </html>
+
 
