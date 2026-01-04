@@ -28,6 +28,8 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
+        html { scroll-behavior: smooth; }
+        
         body { 
             background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #334155 100%);
             font-family: 'Outfit', sans-serif;
@@ -38,10 +40,12 @@
                 radial-gradient(circle at 20% 50%, rgba(8, 145, 178, 0.15) 0%, transparent 50%),
                 radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.15) 0%, transparent 50%),
                 radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+            background-attachment: fixed;
         }
         
         .floating {
             animation: floating 6s ease-in-out infinite;
+            will-change: transform;
         }
         
         @keyframes floating {
@@ -55,19 +59,14 @@
         }
         
         @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .card-3d {
             transform-style: preserve-3d;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
         
         .card-3d:hover {
@@ -106,24 +105,14 @@
             100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
         
-        .progress-ring {
-            transition: stroke-dashoffset 0.5s ease;
-        }
-        
         .review-enter {
             animation: reviewEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             opacity: 0;
         }
         
         @keyframes reviewEnter {
-            from {
-                opacity: 0;
-                transform: translateX(-50px) scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0) scale(1);
-            }
+            from { opacity: 0; transform: translateX(-50px) scale(0.9); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
         }
         
         .testimonial-img {
@@ -148,11 +137,19 @@
             width: 100%;
             height: 3px;
             background: linear-gradient(90deg, rgba(8, 145, 178, 0.5), transparent);
+            display: none;
+        }
+        
+        @media (min-width: 1024px) {
+            .step-connector::after {
+                display: block;
+            }
         }
         
         .process-card {
             position: relative;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
         
         .process-card:hover {
@@ -179,156 +176,104 @@
             0% { filter: hue-rotate(0deg); }
             100% { filter: hue-rotate(360deg); }
         }
+        
+        @media (max-width: 768px) {
+            .hero-pattern { background-attachment: scroll; }
+        }
+        
+        img { max-width: 100%; height: auto; display: block; }
     </style>
-    <style>
-/* GTranslate body / html bozmasını engelle */
-html, body {
-    background: linear-gradient(160deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
-    filter: none !important;
-}
-body {
-  isolation: isolate;
-}
-
-
-/* GTranslate overlay varsa iptal et */
-body > .gt_float_wrapper,
-body > .gtranslate_wrapper {
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-/* GTranslate iframe etkisini azalt */
-iframe[src*="gtranslate"] {
-    filter: none !important;
-}
-</style>
-
 </head>
-<script>
-    window.gtranslateSettings = {
-        "default_language": "tr",
-        "languages": ["tr", "en", "de"],
-        "wrapper_selector": ".gtranslate_wrapper",
-        "switcher_horizontal_position": "right",
-        "flag_style": "3d"
-    }
-</script>
 
-<script src="https://cdn.gtranslate.net/widgets/latest/float.js" defer></script>
-<body  
-class="text-white min-h-screen">
+<body class="text-white min-h-screen">
 
-
-    
     <!-- Navigation -->
     <nav class="fixed w-full top-0 z-50 glass">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="flex justify-between items-center h-24">
-                <div class="flex items-center space-x-4">
-                    <div class="w-14 h-14 bg-gradient-to-br from-ocean to-mint rounded-2xl flex items-center justify-center text-3xl font-bold shadow-2xl shadow-ocean/30">
-                        ✓
-                    </div>
-                    <span class="text-3xl font-display font-black bg-gradient-to-r from-ocean to-mint bg-clip-text text-transparent">
-                        ReviewShield
-                    </span>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20 sm:h-24">
+                <div class="flex items-center space-x-2 sm:space-x-4">
+                    <div class="w-10 sm:w-14 h-10 sm:h-14 bg-gradient-to-br from-ocean to-mint rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-bold shadow-2xl shadow-ocean/30 flex-shrink-0">✓</div>
+                    <span class="text-xl sm:text-3xl font-display font-black bg-gradient-to-r from-ocean to-mint bg-clip-text text-transparent truncate">ReviewShield</span>
                 </div>
                 
-                <div class="hidden lg:flex items-center space-x-10">
-                    <a href="#anasayfa" class="text-lg hover:text-ocean transition-all duration-300">Ana Sayfa</a>
-                    <a href="#hizmetler" class="text-lg hover:text-ocean transition-all duration-300">Hizmetlerimiz</a>
-                    <a href="#nasil" class="text-lg hover:text-ocean transition-all duration-300">Nasıl Çalışır?</a>
-                    <a href="#baslayalim" class="px-8 py-4 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-ocean/40 transition-all duration-300 hover:scale-105">
-                        Başlayalım
-                    </a>
+                <div class="hidden lg:flex items-center space-x-8 xl:space-x-10">
+                    <a href="#anasayfa" class="text-base hover:text-ocean transition-all duration-300">Ana Sayfa</a>
+                    <a href="#hizmetler" class="text-base hover:text-ocean transition-all duration-300">Hizmetler</a>
+                    <a href="#nasil" class="text-base hover:text-ocean transition-all duration-300">Nasıl Çalışır?</a>
+                    <a href="#baslayalim" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-sm sm:text-lg hover:shadow-2xl hover:shadow-ocean/40 transition-all hover:scale-105">Başlayalım</a>
                 </div>
                 
-                <button onclick="toggleMenu()" class="lg:hidden text-4xl hover:text-ocean transition-colors">
-                    ☰
-                </button>
+                <button onclick="toggleMenu()" class="lg:hidden text-3xl sm:text-4xl hover:text-ocean transition-colors p-2">☰</button>
             </div>
         </div>
         
         <!-- Mobile Menu -->
         <div id="mobileMenu" class="lg:hidden fixed inset-0 mobile-menu-overlay bg-navy/95 transform translate-x-full transition-transform duration-300 z-50">
-            <div class="flex flex-col h-full p-8">
-                <button onclick="toggleMenu()" class="self-end text-4xl mb-12 hover:text-ocean transition-colors">✕</button>
-                <div class="flex flex-col space-y-8 text-2xl">
+            <div class="flex flex-col h-full p-6 sm:p-8">
+                <button onclick="toggleMenu()" class="self-end text-3xl sm:text-4xl mb-10 sm:mb-12 hover:text-ocean transition-colors p-2">✕</button>
+                <div class="flex flex-col space-y-6 sm:space-y-8 text-xl sm:text-2xl">
                     <a href="#anasayfa" onclick="toggleMenu()" class="hover:text-ocean transition-colors">Ana Sayfa</a>
-                    <a href="#hizmetler" onclick="toggleMenu()" class="hover:text-ocean transition-colors">Hizmetlerimiz</a>
+                    <a href="#hizmetler" onclick="toggleMenu()" class="hover:text-ocean transition-colors">Hizmetler</a>
                     <a href="#nasil" onclick="toggleMenu()" class="hover:text-ocean transition-colors">Nasıl Çalışır?</a>
-                    <a href="#baslayalim" onclick="toggleMenu()" class="px-8 py-4 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-center hover:shadow-xl transition-all">
-                        Başlayalım
-                    </a>
+                    <a href="#baslayalim" onclick="toggleMenu()" class="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-center hover:shadow-xl transition-all">Başlayalım</a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section id="anasayfa" class="relative pt-40 pb-24 px-6 lg:px-8 hero-pattern overflow-hidden">
+    <section id="anasayfa" class="relative pt-24 sm:pt-32 lg:pt-40 pb-16 sm:pb-20 lg:pb-24 px-4 sm:px-6 lg:px-8 hero-pattern overflow-hidden">
         <div class="max-w-7xl mx-auto">
-            <div class="grid lg:grid-cols-2 gap-16 items-center">
+            <div class="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
                 <div class="slide-up">
-                    <div class="inline-flex items-center space-x-3 px-8 py-4 glass rounded-full mb-10 badge-shine">
-                        <span class="w-4 h-4 bg-mint rounded-full animate-pulse"></span>
-                        <span class="font-semibold text-lg">Profesyonel • Hızlı • Güvenilir</span>
+                    <div class="inline-flex items-center space-x-2 sm:space-x-3 px-4 sm:px-8 py-3 sm:py-4 glass rounded-full mb-6 sm:mb-10 badge-shine text-sm sm:text-base">
+                        <span class="w-3 h-3 sm:w-4 sm:h-4 bg-mint rounded-full animate-pulse flex-shrink-0"></span>
+                        <span class="font-semibold">Profesyonel • Hızlı • Güvenilir</span>
                     </div>
                     
-                    <h1 class="text-6xl lg:text-7xl xl:text-8xl font-display font-black leading-tight mb-8">
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-display font-black leading-tight mb-6 sm:mb-8">
                         İtibarınız
                         <br>
-                        <span class="glow-text bg-gradient-to-r from-ocean via-mint to-coral bg-clip-text text-transparent">
-                            Bizim İşimiz
-                        </span>
+                        <span class="glow-text bg-gradient-to-r from-ocean via-mint to-coral bg-clip-text text-transparent">Bizim İşimiz</span>
                     </h1>
                     
-                    <p class="text-2xl text-gray-300 leading-relaxed mb-12 max-w-2xl">
+                    <p class="text-lg sm:text-xl lg:text-2xl text-gray-300 leading-relaxed mb-8 sm:mb-12 max-w-2xl">
                         Google Maps'teki haksız yorumlar işinize zarar mı veriyor? Uzman hukuk ekibimiz ve gelişmiş analiz sistemimizle yanınızdayız.
                     </p>
                     
-                    <div class="flex flex-col sm:flex-row gap-6">
-                        <button onclick="scrollToStart()" class="group px-12 py-6 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-xl hover:shadow-2xl hover:shadow-ocean/50 transition-all hover:scale-105">
-                            <span class="flex items-center justify-center space-x-3">
+                    <div class="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                        <button onclick="scrollToStart()" class="group px-8 sm:px-12 py-4 sm:py-6 bg-gradient-to-r from-ocean to-mint rounded-2xl font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-ocean/50 transition-all hover:scale-105">
+                            <span class="flex items-center justify-center space-x-2 sm:space-x-3">
                                 <span>Ücretsiz Analiz</span>
-                                <span class="text-2xl group-hover:translate-x-2 transition-transform">→</span>
+                                <span class="text-lg sm:text-2xl group-hover:translate-x-2 transition-transform">→</span>
                             </span>
                         </button>
-                        <button onclick="document.getElementById('nasil').scrollIntoView({behavior:'smooth'})" class="px-12 py-6 glass rounded-2xl font-bold text-xl hover:bg-white/10 transition-all">
-                            Detaylı Bilgi
-                        </button>
+                        <button onclick="document.getElementById('nasil').scrollIntoView({behavior:'smooth'})" class="px-8 sm:px-12 py-4 sm:py-6 glass rounded-2xl font-bold text-base sm:text-lg hover:bg-white/10 transition-all">Detaylı Bilgi</button>
                     </div>
                 </div>
                 
                 <div class="relative floating hidden lg:block">
                     <div class="testimonial-img rounded-3xl overflow-hidden shadow-2xl border-4 border-white/10">
                         <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&h=1000&fit=crop" alt="Mutlu Müşteriler" class="w-full h-auto">
-                        <!-- Floating Review Badges -->
                         <div class="absolute top-8 left-8 glass rounded-2xl p-4 shadow-xl animate-pulse">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-3xl">⭐⭐⭐⭐⭐</span>
-                            </div>
-                            <p class="text-sm font-semibold mt-2">Max B.</p>
+                            <span class="text-2xl">⭐⭐⭐⭐⭐</span>
+                            <p class="text-xs font-semibold mt-2">Max B.</p>
                         </div>
                         <div class="absolute top-32 right-8 glass rounded-2xl p-4 shadow-xl" style="animation-delay: 0.5s">
-                            <div class="text-coral text-3xl mb-2">❤️</div>
-                            <p class="text-sm font-semibold">Harika!</p>
+                            <div class="text-coral text-2xl mb-2">❤️</div>
+                            <p class="text-xs font-semibold">Harika!</p>
                         </div>
                         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 glass rounded-2xl p-5 shadow-xl" style="animation-delay: 0.8s">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-3xl">⭐⭐⭐⭐⭐</span>
-                            </div>
-                            <p class="text-sm font-semibold mt-2">Excellent!</p>
+                            <span class="text-2xl">⭐⭐⭐⭐⭐</span>
+                            <p class="text-xs font-semibold mt-2">Excellent!</p>
                         </div>
                         <div class="absolute bottom-32 left-12 glass rounded-2xl p-4 shadow-xl" style="animation-delay: 1s">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-3xl">⭐⭐⭐⭐⭐</span>
-                            </div>
-                            <p class="text-sm font-semibold mt-2">Lena B.</p>
+                            <span class="text-2xl">⭐⭐⭐⭐⭐</span>
+                            <p class="text-xs font-semibold mt-2">Lena B.</p>
                         </div>
                         <div class="absolute bottom-8 right-12 glass rounded-2xl p-6 shadow-xl" style="animation-delay: 1.5s">
                             <div class="text-mint text-4xl">👍</div>
-                            <p class="text-sm font-semibold mt-2">Sehr gut!</p>
+                            <p class="text-xs font-semibold mt-2">Sehr gut!</p>
                         </div>
                     </div>
                 </div>
@@ -337,305 +282,270 @@ class="text-white min-h-screen">
     </section>
 
     <!-- Stats -->
-    <section class="py-20 px-6 lg:px-8">
+    <section class="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8">
         <div class="max-w-7xl mx-auto">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
-                <div class="glass rounded-3xl p-10 text-center card-3d">
-                    <div class="text-6xl font-black bg-gradient-to-r from-ocean to-mint bg-clip-text text-transparent mb-3 counter" data-target="15200">0</div>
-                    <div class="text-gray-400 text-lg">Çözülen Durum</div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+                <div class="glass rounded-3xl p-6 sm:p-10 text-center card-3d">
+                    <div class="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-to-r from-ocean to-mint bg-clip-text text-transparent mb-3 counter" data-target="15200">0</div>
+                    <div class="text-gray-400 text-sm sm:text-lg">Çözülen Durum</div>
                 </div>
-                <div class="glass rounded-3xl p-10 text-center card-3d">
-                    <div class="text-6xl font-black bg-gradient-to-r from-mint to-coral bg-clip-text text-transparent mb-3"><span class="counter" data-target="96">0</span>%</div>
-                    <div class="text-gray-400 text-lg">Başarı Oranı</div>
+                <div class="glass rounded-3xl p-6 sm:p-10 text-center card-3d">
+                    <div class="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-to-r from-mint to-coral bg-clip-text text-transparent mb-3"><span class="counter" data-target="96">0</span>%</div>
+                    <div class="text-gray-400 text-sm sm:text-lg">Başarı Oranı</div>
                 </div>
-                <div class="glass rounded-3xl p-10 text-center card-3d">
-                    <div class="text-6xl font-black bg-gradient-to-r from-coral to-ocean bg-clip-text text-transparent mb-3 counter" data-target="2800">0</div>
-                    <div class="text-gray-400 text-lg">Memnun Müşteri</div>
+                <div class="glass rounded-3xl p-6 sm:p-10 text-center card-3d">
+                    <div class="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-to-r from-coral to-ocean bg-clip-text text-transparent mb-3 counter" data-target="2800">0</div>
+                    <div class="text-gray-400 text-sm sm:text-lg">Memnun Müşteri</div>
                 </div>
-                <div class="glass rounded-3xl p-10 text-center card-3d">
-                    <div class="text-6xl font-black bg-gradient-to-r from-ocean to-coral bg-clip-text text-transparent mb-3 counter" data-target="36">0</div>
-                    <div class="text-gray-400 text-lg">Saat Ortalama Süre</div>
+                <div class="glass rounded-3xl p-6 sm:p-10 text-center card-3d">
+                    <div class="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-to-r from-ocean to-coral bg-clip-text text-transparent mb-3 counter" data-target="36">0</div>
+                    <div class="text-gray-400 text-sm sm:text-lg">Saat Ortalama</div>
                 </div>
             </div>
         </div>
     </section>
-    <!-- İkna & Sonuç Odaklı Bölüm - Ne Kazanırsınız? -->
-<!-- İkna & Sonuç Odaklı Bölüm - Ne Kazanırsınız? -->
-<section class="relative py-20 px-6 lg:px-8 border-b border-white/10 hero-pattern overflow-hidden">
-    <div class="max-w-7xl mx-auto">
-        <div class="glass rounded-3xl p-10 lg:p-16">
-            <div class="text-center mb-16">
-                <div class="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-coral to-mint rounded-full mb-10 shadow-2xl shadow-coral/40 animate-pulse">
-                    <span class="text-5xl">🚀</span>
-                </div>
-                <h2 class="text-5xl lg:text-7xl font-display font-black mb-8 leading-tight">
-                    Haksız Yorumlar Silinince
-                    <br>
-                    <span class="bg-gradient-to-r from-coral via-ocean to-mint bg-clip-text text-transparent">
-                        İşiniz Gerçekten Uçuyor!
-                    </span>
-                </h2>
-                <p class="text-2xl lg:text-3xl text-gray-200 max-w-5xl mx-auto leading-relaxed">
-                    Sadece "yorum silmek" değil, <strong>işletmenizin dijital vitrinini yeniden inşa etmekten</strong> bahsediyoruz.
-                    Gerçek sonuçlar: Daha yüksek puan, daha çok görünürlük, daha fazla müşteri.
-                </p>
-            </div>
 
-            <!-- Before / After Görseller - Geniş ve yan yana -->
-            <div class="grid lg:grid-cols-2 gap-12 mb-20 items-start">
-                <div class="glass rounded-3xl p-10 overflow-hidden card-3d">
-                    <div class="text-2xl font-bold mb-6 text-red-400 flex items-center gap-4">
-                        <span>ÖNCE → 4.2 ⭐</span>
-                        <span class="text-sm opacity-75">(Olumsuz yorum bombardımanı)</span>
+    <!-- Results Section -->
+    <section class="relative py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 border-b border-white/10 hero-pattern overflow-hidden">
+        <div class="max-w-7xl mx-auto">
+            <div class="glass rounded-3xl p-8 sm:p-10 lg:p-16">
+                <div class="text-center mb-10 sm:mb-16">
+                    <div class="inline-flex items-center justify-center w-16 sm:w-20 lg:w-24 h-16 sm:h-20 lg:h-24 bg-gradient-to-br from-coral to-mint rounded-full mb-6 sm:mb-10 shadow-2xl shadow-coral/40 animate-pulse flex-shrink-0">
+                        <span class="text-3xl sm:text-4xl lg:text-5xl">🚀</span>
                     </div>
-                    <img src="https://www.netreputation.com/wp-content/uploads/pizzaplacereviews_22525.png"
-                         alt="Düşük puanlı Google profili - çok sayıda 1-2 yıldız yorum"
-                         class="w-full rounded-2xl shadow-2xl border border-white/10">
-                    <p class="mt-6 text-lg text-gray-400 leading-relaxed">
-                        Müşteriler yorumları görünce “Acaba burası kötü mü?” diye düşünüp geçiyor...
+                    <h2 class="text-3xl sm:text-4xl lg:text-6xl xl:text-7xl font-display font-black mb-6 sm:mb-8 leading-tight">
+                        Haksız Yorumlar Silinince
+                        <br>
+                        <span class="bg-gradient-to-r from-coral via-ocean to-mint bg-clip-text text-transparent">İşiniz Gerçekten Uçuyor!</span>
+                    </h2>
+                    <p class="text-lg sm:text-xl lg:text-2xl xl:text-3xl text-gray-200 max-w-5xl mx-auto leading-relaxed">
+                        Sadece "yorum silmek" değil, <strong>işletmenizin dijital vitrinini yeniden inşa etmekten</strong> bahsediyoruz. Gerçek sonuçlar: Daha yüksek puan, daha çok görünürlük, daha fazla müşteri.
                     </p>
                 </div>
 
-           <div class="glass rounded-3xl p-10 overflow-hidden card-3d">
-    <div class="text-2xl font-bold mb-6 text-mint flex items-center gap-4">
-        <span>SONRA → 4.8 ⭐</span>
-        <span class="text-sm opacity-75">(Temiz ve güvenilir profil)</span>
-    </div>
-    <img src="https://wiserreview.com/wp-content/uploads/2025/08/20250826_1606_5-StarReviewCelebration_simple_compose_01k3jz57m1fenvtae1qvf60ca.jpeg"
-         alt="Yüksek puanlı Google profilini kutlayan mutlu işletme sahibi"
-         class="w-full rounded-2xl shadow-2xl border border-white/10">
-    <p class="mt-6 text-lg text-gray-400 leading-relaxed">
-        Müşteriler “Burası çok iyiymiş, hemen gidelim!” diyerek rezervasyon yapıyor.
-    </p>
-</div>
+                <div class="grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 mb-12 sm:mb-16 lg:mb-20 items-start">
+                    <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 overflow-hidden card-3d">
+                        <div class="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-6 text-red-400 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                            <span>ÖNCE → 4.2 ⭐</span>
+                            <span class="text-xs sm:text-sm opacity-75">(Olumsuz yorum bombardımanı)</span>
+                        </div>
+                        <img src="https://www.netreputation.com/wp-content/uploads/pizzaplacereviews_22525.png" alt="Düşük puanlı profil" class="w-full rounded-2xl shadow-2xl border border-white/10">
+                        <p class="mt-4 sm:mt-6 text-base sm:text-lg text-gray-400 leading-relaxed">
+                            Müşteriler yorumları görünce "Acaba burası kötü mü?" diye düşünüp geçiyor...
+                        </p>
+                    </div>
 
-            <!-- İstatistik Kartları - Daha geniş ve ferah -->
-            <div class="grid md:grid-cols-3 gap-12 mb-20">
-                <div class="glass rounded-3xl p-12 text-center card-3d">
-                    <div class="text-7xl mb-6">📈</div>
-                    <h3 class="text-3xl lg:text-4xl font-bold mb-4 text-mint">+0.4 - 0.8 Puan Artışı</h3>
-                    <p class="text-lg lg:text-xl text-gray-300 leading-relaxed">
-                        Haksız 1-2 yıldızları kaldırdığımızda işletmelerin ortalama puanı bu kadar yükseliyor. 
-                        4.2 → 4.8 çok gerçekçi bir sonuç!
-                    </p>
+                    <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 overflow-hidden card-3d">
+                        <div class="text-lg sm:text-xl lg:text-2xl font-bold mb-4 sm:mb-6 text-mint flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                            <span>SONRA → 4.8 ⭐</span>
+                            <span class="text-xs sm:text-sm opacity-75">(Temiz ve güvenilir profil)</span>
+                        </div>
+                        <img src="https://wiserreview.com/wp-content/uploads/2025/08/20250826_1606_5-StarReviewCelebration_simple_compose_01k3jz57m1fenvtae1qvf60ca.jpeg" alt="Yüksek puanlı profil" class="w-full rounded-2xl shadow-2xl border border-white/10">
+                        <p class="mt-4 sm:mt-6 text-base sm:text-lg text-gray-400 leading-relaxed">
+                            Müşteriler "Burası çok iyiymiş, hemen gidelim!" diyerek rezervasyon yapıyor.
+                        </p>
+                    </div>
                 </div>
 
-                <div class="glass rounded-3xl p-12 text-center card-3d">
-                    <div class="text-7xl mb-6">👥</div>
-                    <h3 class="text-3xl lg:text-4xl font-bold mb-4 text-ocean">+%30-70 Daha Fazla Müşteri</h3>
-                    <p class="text-lg lg:text-xl text-gray-300 leading-relaxed">
-                        Google’da 4.5+ puanlı işletmeler, 4.0 altı olanlara göre çok daha fazla tıklama ve ziyaret alıyor.
-                    </p>
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12 mb-12 sm:mb-16 lg:mb-20">
+                    <div class="glass rounded-3xl p-6 sm:p-8 lg:p-12 text-center card-3d">
+                        <div class="text-5xl sm:text-6xl lg:text-7xl mb-4 sm:mb-6">📈</div>
+                        <h3 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 text-mint">+0.4 - 0.8 Puan Artışı</h3>
+                        <p class="text-base sm:text-lg lg:text-xl text-gray-300 leading-relaxed">
+                            Haksız 1-2 yıldızları kaldırdığımızda işletmelerin ortalama puanı bu kadar yükseliyor. 4.2 → 4.8 çok gerçekçi bir sonuç!
+                        </p>
+                    </div>
+
+                    <div class="glass rounded-3xl p-6 sm:p-8 lg:p-12 text-center card-3d">
+                        <div class="text-5xl sm:text-6xl lg:text-7xl mb-4 sm:mb-6">👥</div>
+                        <h3 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 text-ocean">+%30-70 Daha Fazla Müşteri</h3>
+                        <p class="text-base sm:text-lg lg:text-xl text-gray-300 leading-relaxed">
+                            Google'da 4.5+ puanlı işletmeler, 4.0 altı olanlara göre çok daha fazla tıklama ve ziyaret alıyor.
+                        </p>
+                    </div>
+
+                    <div class="glass rounded-3xl p-6 sm:p-8 lg:p-12 text-center card-3d">
+                        <div class="text-5xl sm:text-6xl lg:text-7xl mb-4 sm:mb-6">💰</div>
+                        <h3 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 text-coral">Binlerce Euro Ek Gelir</h3>
+                        <p class="text-base sm:text-lg lg:text-xl text-gray-300 leading-relaxed">
+                            Her 0.1 puan artışı ortalama %5-12 daha fazla ciro demek. 10 olumsuz yorumu temizlemek = ciddi bir yatırım getirisi!
+                        </p>
+                    </div>
                 </div>
 
-                <div class="glass rounded-3xl p-12 text-center card-3d">
-                    <div class="text-7xl mb-6">💰</div>
-                    <h3 class="text-3xl lg:text-4xl font-bold mb-4 text-coral">Binlerce Euro Ek Gelir</h3>
-                    <p class="text-lg lg:text-xl text-gray-300 leading-relaxed">
-                        Her 0.1 puan artışı ortalama %5-12 daha fazla ciro demek. 
-                        10 olumsuz yorumu temizlemek = ciddi bir yatırım getirisi!
-                    </p>
+                <div class="max-w-5xl mx-auto mb-12 sm:mb-16">
+                    <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 lg:p-12">
+                        <p class="text-xl sm:text-2xl lg:text-3xl font-bold mb-6 sm:mb-8 text-white text-center">
+                            Müşteriler bugün şöyle düşünüyor:
+                        </p>
+                        <img src="https://cdn1.link-assistant.com/upload/news/posts/381/local-pack.png" alt="Google Maps arama" class="w-full rounded-2xl shadow-2xl border border-white/10">
+                        <p class="text-lg sm:text-xl lg:text-2xl text-gray-300 italic text-center mt-6 sm:mt-8">
+                            "4.8 yıldız mı? Yorumlar da süper! Hemen arayayım / rezervasyon yapayım!"
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Müşteri Algısı Görseli - Tam genişlikte -->
-            <div class="max-w-5xl mx-auto mb-16">
-                <div class="glass rounded-3xl p-10 lg:p-12">
-                    <p class="text-2xl lg:text-3xl font-bold mb-8 text-white text-center">
-                        Müşteriler bugün şöyle düşünüyor:
-                    </p>
-                    <img src="https://cdn1.link-assistant.com/upload/news/posts/381/local-pack.png"
-                         alt="Google Maps arama sonuçlarında yüksek puanlı işletmelerin öne çıkması"
-                         class="w-full rounded-2xl shadow-2xl border border-white/10">
-                    <p class="text-xl lg:text-2xl text-gray-300 italic text-center mt-8">
-                        “4.8 yıldız mı? Yorumlar da süper! Hemen arayayım / rezervasyon yapayım!”
-                    </p>
+                <div class="flex flex-col lg:flex-row justify-center gap-4 sm:gap-6 lg:gap-10">
+                    <button onclick="scrollToStart()" class="px-6 sm:px-12 lg:px-16 py-6 sm:py-8 lg:py-9 bg-gradient-to-r from-coral via-mint to-ocean rounded-3xl font-bold text-base sm:text-lg lg:text-2xl lg:text-3xl hover:shadow-2xl hover:shadow-mint/60 transition-all hover:scale-105 shadow-2xl flex items-center justify-center gap-2 sm:gap-4">
+                        <span>Şimdi Ücretsiz Analiz Yap → İşletmemi Uçur!</span>
+                        <span class="text-2xl sm:text-3xl lg:text-4xl">🔥</span>
+                    </button>
+
+                    <a href="https://wa.me/4917627729811?text=Merhaba! İşletmemin Google puanını yükseltmek istiyorum. Hemen analiz yapalım mı?" 
+                       class="px-6 sm:px-12 lg:px-16 py-6 sm:py-8 lg:py-9 glass rounded-3xl font-bold text-base sm:text-lg lg:text-2xl lg:text-3xl hover:bg-white/10 transition-all border-2 border-mint/40 hover:border-mint flex items-center justify-center gap-2 sm:gap-4">
+                        <span>WhatsApp'tan Hemen Konuşalım</span>
+                        <span class="text-xl sm:text-2xl lg:text-3xl">💬</span>
+                    </a>
                 </div>
-            </div>
-
-            <!-- Son CTA -->
-            <div class="flex flex-col lg:flex-row justify-center gap-10">
-                <button onclick="scrollToStart()" 
-                        class="px-16 py-9 bg-gradient-to-r from-coral via-mint to-ocean rounded-3xl font-bold text-2xl lg:text-3xl hover:shadow-2xl hover:shadow-mint/60 transition-all hover:scale-105 shadow-2xl flex items-center justify-center gap-4">
-                    <span>Şimdi Ücretsiz Analiz Yap → İşletmemi Uçur!</span>
-                    <span class="text-4xl">🔥</span>
-                </button>
-
-                <a href="https://wa.me/4917627729811?text=Merhaba! İşletmemin Google puanını yükseltmek istiyorum. Hemen analiz yapalım mı?"
-                   class="px-16 py-9 glass rounded-3xl font-bold text-2xl lg:text-3xl hover:bg-white/10 transition-all border-2 border-mint/40 hover:border-mint flex items-center justify-center gap-4">
-                    <span>WhatsApp'tan Hemen Konuşalım</span>
-                    <span class="text-3xl">💬</span>
-                </a>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
     <!-- Services -->
-    <section id="hizmetler" class="py-24 px-6 lg:px-8">
+    <section id="hizmetler" class="py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8">
         <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-20">
-                <h2 class="text-5xl lg:text-7xl font-display font-black mb-8">
+            <div class="text-center mb-12 sm:mb-16 lg:mb-20">
+                <h2 class="text-3xl sm:text-4xl lg:text-6xl xl:text-7xl font-display font-black mb-4 sm:mb-8">
                     Sabit Fiyata <span class="bg-gradient-to-r from-ocean to-coral bg-clip-text text-transparent">Dahil Olanlar</span>
                 </h2>
-                <p class="text-2xl text-gray-300 max-w-3xl mx-auto">Şeffaf süreç, net sonuçlar - gizli maliyet yok</p>
+                <p class="text-lg sm:text-xl lg:text-2xl text-gray-300 max-w-3xl mx-auto">Şeffaf süreç, net sonuçlar - gizli maliyet yok</p>
             </div>
             
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-10">
-                <div class="glass rounded-3xl p-10 card-3d group">
-                    <div class="w-20 h-20 bg-gradient-to-br from-ocean to-mint rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
-                        🔍
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">Başarı Analizi</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">Google yorumlarınızı profesyonel hukuki perspektiften inceler, silme şansınızı değerlendiririz. Tamamen ücretsiz ve bağlayıcı değil.</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
+                <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 card-3d group">
+                    <div class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-ocean to-mint rounded-3xl flex items-center justify-center text-3xl sm:text-4xl mb-6 sm:mb-8 shadow-xl group-hover:scale-110 transition-transform flex-shrink-0">🔍</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Başarı Analizi</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">Google yorumlarınızı profesyonel hukuki perspektiften inceler, silme şansınızı değerlendiririz. Tamamen ücretsiz ve bağlayıcı değil.</p>
                 </div>
                 
-                <div class="glass rounded-3xl p-10 card-3d group">
-                    <div class="w-20 h-20 bg-gradient-to-br from-mint to-coral rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
-                        📝
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">Hukuki Müdahale</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">Avukat ekibimiz Google'a resmi bir yazı gönderir. Platform, haksız yorumları kaldırması için yasal olarak uyarılır.</p>
+                <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 card-3d group">
+                    <div class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-mint to-coral rounded-3xl flex items-center justify-center text-3xl sm:text-4xl mb-6 sm:mb-8 shadow-xl group-hover:scale-110 transition-transform flex-shrink-0">📝</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Hukuki Müdahale</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">Avukat ekibimiz Google'a resmi bir yazı gönderir. Platform, haksız yorumları kaldırması için yasal olarak uyarılır.</p>
                 </div>
                 
-                <div class="glass rounded-3xl p-10 card-3d group">
-                    <div class="w-20 h-20 bg-gradient-to-br from-coral to-ocean rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
-                        💬
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">Google İletişimi</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">Her yorum hemen silinmez - bazen detaylı yazışma gerekir. Tüm iletişimi profesyonelce yönetir, sizin adınıza takip ederiz.</p>
+                <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 card-3d group">
+                    <div class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-coral to-ocean rounded-3xl flex items-center justify-center text-3xl sm:text-4xl mb-6 sm:mb-8 shadow-xl group-hover:scale-110 transition-transform flex-shrink-0">💬</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Google İletişimi</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">Her yorum hemen silinmez - bazen detaylı yazışma gerekir. Tüm iletişimi profesyonelce yönetir, sizin adınıza takip ederiz.</p>
                 </div>
                 
-                <div class="glass rounded-3xl p-10 card-3d group">
-                    <div class="w-20 h-20 bg-gradient-to-br from-mint to-ocean rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
-                        ✅
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">Silme Kontrolü</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">Google yorumları kaldırdığında, gerçek silinme durumunu doğrularız. Tüm yorumlar ve yorumlar kalıcı olarak temizlenmelidir.</p>
+                <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 card-3d group">
+                    <div class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-mint to-ocean rounded-3xl flex items-center justify-center text-3xl sm:text-4xl mb-6 sm:mb-8 shadow-xl group-hover:scale-110 transition-transform flex-shrink-0">✅</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Silme Kontrolü</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">Google yorumları kaldırdığında, gerçek silinme durumunu doğrularız. Tüm yorumlar kalıcı olarak temizlenmelidir.</p>
                 </div>
                 
-                <div class="glass rounded-3xl p-10 card-3d group">
-                    <div class="w-20 h-20 bg-gradient-to-br from-ocean to-coral rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
-                        ⚖️
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">İleri Adımlar</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">Çoğu durumda avukatlık mektubu yeterlidir. Başarısızsa, resmi uyarı ve mahkeme süreçleri için ayrı teklif sunuyoruz.</p>
+                <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 card-3d group">
+                    <div class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-ocean to-coral rounded-3xl flex items-center justify-center text-3xl sm:text-4xl mb-6 sm:mb-8 shadow-xl group-hover:scale-110 transition-transform flex-shrink-0">⚖️</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">İleri Adımlar</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">Çoğu durumda avukatlık mektubu yeterlidir. Başarısızsa, resmi uyarı ve mahkeme süreçleri için ayrı teklif sunuyoruz.</p>
                 </div>
                 
-                <div class="glass rounded-3xl p-10 card-3d group">
-                    <div class="w-20 h-20 bg-gradient-to-br from-coral to-mint rounded-3xl flex items-center justify-center text-4xl mb-8 shadow-xl group-hover:scale-110 transition-transform">
-                        📞
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">Termin Gerektirmez</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">Tüm iletişim online - iletişim formu, e-posta veya telefon ile. Kişisel randevu için ofise gelmeniz gerekmiyor.</p>
+                <div class="glass rounded-3xl p-6 sm:p-8 lg:p-10 card-3d group">
+                    <div class="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-br from-coral to-mint rounded-3xl flex items-center justify-center text-3xl sm:text-4xl mb-6 sm:mb-8 shadow-xl group-hover:scale-110 transition-transform flex-shrink-0">📞</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Termin Gerektirmez</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">Tüm iletişim online - iletişim formu, e-posta veya telefon ile. Kişisel randevu için ofise gelmeniz gerekmiyor.</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Process -->
-    <section id="nasil" class="py-24 px-6 lg:px-8 glass">
+    <section id="nasil" class="py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8 glass">
         <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-20">
-                <h2 class="text-5xl lg:text-7xl font-display font-black mb-8">
+            <div class="text-center mb-12 sm:mb-16 lg:mb-20">
+                <h2 class="text-3xl sm:text-4xl lg:text-6xl xl:text-7xl font-display font-black mb-4 sm:mb-8">
                     <span class="bg-gradient-to-r from-ocean to-mint bg-clip-text text-transparent">4 Adımda</span> Çözüm
                 </h2>
-                <p class="text-2xl text-gray-300">Basit, şeffaf ve etkili süreç</p>
+                <p class="text-lg sm:text-xl lg:text-2xl text-gray-300">Basit, şeffaf ve etkili süreç</p>
             </div>
             
-            <div class="grid lg:grid-cols-4 gap-8">
-                <div class="process-card glass rounded-3xl p-10 text-center step-connector">
-                    <div class="w-36 h-36 mx-auto bg-gradient-to-br from-ocean to-mint rounded-full flex items-center justify-center text-6xl font-black mb-8 shadow-2xl shadow-ocean/40">
-                        1
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">İşletme Bilgisi</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">İşletme adınızı girin - sistemimiz otomatik olarak Google Maps profilinizi bulur ve tüm yorumları tarar.</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+                <div class="process-card glass rounded-3xl p-6 sm:p-8 lg:p-10 text-center step-connector">
+                    <div class="w-24 sm:w-28 lg:w-36 h-24 sm:h-28 lg:h-36 mx-auto bg-gradient-to-br from-ocean to-mint rounded-full flex items-center justify-center text-4xl sm:text-5xl lg:text-6xl font-black mb-6 sm:mb-8 shadow-2xl shadow-ocean/40 flex-shrink-0">1</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">İşletme Bilgisi</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">İşletme adınızı girin - sistemimiz otomatik olarak Google Maps profilinizi bulur ve tüm yorumları tarar.</p>
                 </div>
                 
-                <div class="process-card glass rounded-3xl p-10 text-center step-connector">
-                    <div class="w-36 h-36 mx-auto bg-gradient-to-br from-mint to-coral rounded-full flex items-center justify-center text-6xl font-black mb-8 shadow-2xl shadow-mint/40">
-                        2
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">Akıllı Değerlendirme</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">AI destekli sistemimiz her yorumu hukuki açıdan inceler, Google politikalarına aykırı içerikleri tespit eder.</p>
+                <div class="process-card glass rounded-3xl p-6 sm:p-8 lg:p-10 text-center step-connector">
+                    <div class="w-24 sm:w-28 lg:w-36 h-24 sm:h-28 lg:h-36 mx-auto bg-gradient-to-br from-mint to-coral rounded-full flex items-center justify-center text-4xl sm:text-5xl lg:text-6xl font-black mb-6 sm:mb-8 shadow-2xl shadow-mint/40 flex-shrink-0">2</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Akıllı Değerlendirme</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">AI destekli sistemimiz her yorumu hukuki açıdan inceler, Google politikalarına aykırı içerikleri tespit eder.</p>
                 </div>
                 
-                <div class="process-card glass rounded-3xl p-10 text-center step-connector">
-                    <div class="w-36 h-36 mx-auto bg-gradient-to-br from-coral to-ocean rounded-full flex items-center justify-center text-6xl font-black mb-8 shadow-2xl shadow-coral/40">
-                        3
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">Detaylı Rapor</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">Anında detaylı analiz raporu alın. Hangi yorumların silinebileceğini ve tahmini süreyi öğrenin.</p>
+                <div class="process-card glass rounded-3xl p-6 sm:p-8 lg:p-10 text-center step-connector">
+                    <div class="w-24 sm:w-28 lg:w-36 h-24 sm:h-28 lg:h-36 mx-auto bg-gradient-to-br from-coral to-ocean rounded-full flex items-center justify-center text-4xl sm:text-5xl lg:text-6xl font-black mb-6 sm:mb-8 shadow-2xl shadow-coral/40 flex-shrink-0">3</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Detaylı Rapor</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">Anında detaylı analiz raporu alın. Hangi yorumların silinebileceğini ve tahmini süreyi öğrenin.</p>
                 </div>
                 
-                <div class="process-card glass rounded-3xl p-10 text-center">
-                    <div class="w-36 h-36 mx-auto bg-gradient-to-br from-ocean via-mint to-coral rounded-full flex items-center justify-center text-6xl font-black mb-8 shadow-2xl shadow-ocean/40">
-                        4
-                    </div>
-                    <h3 class="text-3xl font-bold mb-6">Hukuki Süreç</h3>
-                    <p class="text-gray-300 text-lg leading-relaxed">Onay verirseniz, uzman avukat ekibimiz harekete geçer ve sizin adınıza tüm işlemleri yürütür.</p>
+                <div class="process-card glass rounded-3xl p-6 sm:p-8 lg:p-10 text-center">
+                    <div class="w-24 sm:w-28 lg:w-36 h-24 sm:h-28 lg:h-36 mx-auto bg-gradient-to-br from-ocean via-mint to-coral rounded-full flex items-center justify-center text-4xl sm:text-5xl lg:text-6xl font-black mb-6 sm:mb-8 shadow-2xl shadow-ocean/40 flex-shrink-0">4</div>
+                    <h3 class="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Hukuki Süreç</h3>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">Onay verirseniz, uzman avukat ekibimiz harekete geçer ve sizin adınıza tüm işlemleri yürütür.</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- CTA -->
-    <section id="baslayalim" class="py-24 px-6 lg:px-8">
+    <section id="baslayalim" class="py-12 sm:py-16 lg:py-24 px-4 sm:px-6 lg:px-8">
         <div class="max-w-5xl mx-auto">
-            <div class="glass rounded-3xl p-12 lg:p-16 shadow-2xl">
-                <div class="text-center mb-12">
-                    <div class="inline-flex items-center space-x-3 px-8 py-4 bg-mint/20 rounded-full mb-8">
-                        <span class="text-4xl">🎯</span>
+            <div class="glass rounded-3xl p-6 sm:p-8 lg:p-16 shadow-2xl">
+                <div class="text-center mb-8 sm:mb-12">
+                    <div class="inline-flex items-center space-x-2 sm:space-x-3 px-4 sm:px-8 py-3 sm:py-4 bg-mint/20 rounded-full mb-6 sm:mb-8 text-sm sm:text-base">
+                        <span class="text-3xl sm:text-4xl">🎯</span>
                         <span class="text-xl font-bold text-mint">%100 Ücretsiz Analiz</span>
                     </div>
-                    <h2 class="text-4xl lg:text-6xl font-display font-black mb-6">
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-display font-black mb-4 sm:mb-6">
                         Hemen <span class="bg-gradient-to-r from-ocean to-coral bg-clip-text text-transparent">Başlayın</span>
                     </h2>
-                    <p class="text-xl lg:text-2xl text-gray-300">Kredi kartı bilgisi istenmez • Anında sonuç • Gizlilik garantisi</p>
+                    <p class="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-300">Kredi kartı bilgisi istenmez • Anında sonuç • Gizlilik garantisi</p>
                 </div>
                 
-                <div class="max-w-2xl mx-auto space-y-8">
+                <div class="max-w-2xl mx-auto space-y-6 sm:space-y-8">
                     <div class="relative">
                         <input 
                             type="text" 
                             id="businessInput" 
                             placeholder="İşletme adınızı yazın (örneğin: Mehmet'in Kebabı Köln)"
-                            class="w-full px-8 py-7 bg-white/5 border-2 border-white/20 rounded-2xl text-white text-xl placeholder-gray-400 focus:outline-none focus:border-ocean focus:bg-white/10 transition-all"
+                            class="w-full px-4 sm:px-8 py-5 sm:py-7 bg-white/5 border-2 border-white/20 rounded-2xl text-white text-base sm:text-xl placeholder-gray-400 focus:outline-none focus:border-ocean focus:bg-white/10 transition-all"
                             onkeypress="if(event.key==='Enter') beginAnalysis()"
                         >
-                        <div class="absolute right-6 top-1/2 -translate-y-1/2 text-3xl opacity-50">🔎</div>
+                        <div class="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 text-2xl sm:text-3xl opacity-50">🔎</div>
                     </div>
                     
                     <button 
                         id="startBtn"
                         onclick="beginAnalysis()" 
-                        class="w-full py-7 bg-gradient-to-r from-ocean via-mint to-coral rounded-2xl font-bold text-2xl hover:shadow-2xl hover:shadow-ocean/50 transition-all hover:scale-105 relative overflow-hidden group"
+                        class="w-full py-5 sm:py-7 bg-gradient-to-r from-ocean via-mint to-coral rounded-2xl font-bold text-base sm:text-xl lg:text-2xl hover:shadow-2xl hover:shadow-ocean/50 transition-all hover:scale-105 relative overflow-hidden group"
                     >
-                        <span class="relative z-10 flex items-center justify-center space-x-3">
+                        <span class="relative z-10 flex items-center justify-center space-x-2 sm:space-x-3">
                             <span>Analizi Başlat</span>
-                            <span class="text-3xl group-hover:translate-x-2 transition-transform">🚀</span>
+                            <span class="text-xl sm:text-2xl lg:text-3xl group-hover:translate-x-2 transition-transform">🚀</span>
                         </span>
                         <div class="absolute inset-0 bg-gradient-to-r from-coral via-mint to-ocean opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     </button>
                     
-                    <div class="flex items-center justify-center space-x-8 text-gray-400 text-sm">
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs sm:text-sm text-gray-400">
                         <div class="flex items-center space-x-2">
-                            <span class="text-mint text-2xl">✓</span>
+                            <span class="text-mint text-xl">✓</span>
                             <span>GDPR Uyumlu</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <span class="text-mint text-2xl">✓</span>
+                            <span class="text-mint text-xl">✓</span>
                             <span>SSL Güvenli</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <span class="text-mint text-2xl">✓</span>
+                            <span class="text-mint text-xl">✓</span>
                             <span>Gizli Veri</span>
                         </div>
                     </div>
                 </div>
                 
-                <div id="loadingSection" class="hidden mt-12 max-w-2xl mx-auto">
-                    <div class="text-center mb-8">
+                <div id="loadingSection" class="hidden mt-8 sm:mt-12 max-w-2xl mx-auto">
+                    <div class="text-center mb-6 sm:mb-8">
                         <div class="inline-flex items-center space-x-4 px-8 py-4 glass rounded-full">
                             <div class="w-5 h-5 bg-ocean rounded-full animate-ping"></div>
                             <span class="text-xl font-semibold">Profesyonel analiz yapılıyor...</span>
@@ -651,49 +561,47 @@ class="text-white min-h-screen">
     </section>
 
     <!-- Results Container -->
-    <div id="resultsArea" class="px-6 lg:px-8 pb-24"></div>
+    <div id="resultsArea" class="px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 lg:pb-24"></div>
 
     <!-- Footer -->
-    <footer class="py-20 px-6 lg:px-8 glass border-t border-white/10">
+    <footer class="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 glass border-t border-white/10">
         <div class="max-w-7xl mx-auto">
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12 mb-12 sm:mb-16">
                 <div>
-                    <div class="flex items-center space-x-4 mb-6">
-                        <div class="w-12 h-12 bg-gradient-to-br from-ocean to-mint rounded-2xl flex items-center justify-center text-2xl font-bold">
-                            ✓
-                        </div>
-                        <span class="text-2xl font-display font-black">ReviewShield</span>
+                    <div class="flex items-center space-x-2 sm:space-x-4 mb-4 sm:mb-6">
+                        <div class="w-10 sm:w-12 h-10 sm:h-12 bg-gradient-to-br from-ocean to-mint rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold flex-shrink-0">✓</div>
+                        <span class="text-xl sm:text-2xl font-display font-black">ReviewShield</span>
                     </div>
-                    <p class="text-gray-400 leading-relaxed text-lg">Dijital itibarınızı korumak ve işletmenizi büyütmek için profesyonel hukuki danışmanlık hizmetleri.</p>
+                    <p class="text-gray-400 leading-relaxed text-xs sm:text-sm lg:text-base">Dijital itibarınızı korumak ve işletmenizi büyütmek için profesyonel hukuki danışmanlık hizmetleri.</p>
                 </div>
                 
                 <div>
-                    <h4 class="text-xl font-bold mb-6">Hızlı Erişim</h4>
-                    <div class="space-y-3">
-                        <a href="#anasayfa" class="block text-gray-400 hover:text-ocean transition-colors text-lg">Ana Sayfa</a>
-                        <a href="#hizmetler" class="block text-gray-400 hover:text-ocean transition-colors text-lg">Hizmetlerimiz</a>
-                        <a href="#nasil" class="block text-gray-400 hover:text-ocean transition-colors text-lg">Nasıl Çalışır?</a>
-                        <a href="#baslayalim" class="block text-gray-400 hover:text-ocean transition-colors text-lg">Analiz Başlat</a>
+                    <h4 class="text-base sm:text-lg lg:text-xl font-bold mb-4 sm:mb-6">Hızlı Erişim</h4>
+                    <div class="space-y-2 sm:space-y-3 text-xs sm:text-sm lg:text-base">
+                        <a href="#anasayfa" class="block text-gray-400 hover:text-ocean transition-colors">Ana Sayfa</a>
+                        <a href="#hizmetler" class="block text-gray-400 hover:text-ocean transition-colors">Hizmetlerimiz</a>
+                        <a href="#nasil" class="block text-gray-400 hover:text-ocean transition-colors">Nasıl Çalışır?</a>
+                        <a href="#baslayalim" class="block text-gray-400 hover:text-ocean transition-colors">Analiz Başlat</a>
                     </div>
                 </div>
                 
                 <div>
-                    <h4 class="text-xl font-bold mb-6">İletişim</h4>
-                    <div class="space-y-4">
-                        <a href="https://wa.me/4917627729811" class="flex items-center space-x-3 text-gray-400 hover:text-mint transition-colors group">
-                            <span class="text-3xl group-hover:scale-110 transition-transform">💬</span>
-                            <span class="text-lg">WhatsApp Destek</span>
+                    <h4 class="text-base sm:text-lg lg:text-xl font-bold mb-4 sm:mb-6">İletişim</h4>
+                    <div class="space-y-3 sm:space-y-4">
+                        <a href="https://wa.me/4917627729811" class="flex items-center space-x-2 sm:space-x-3 text-gray-400 hover:text-mint transition-colors group text-xs sm:text-sm lg:text-base">
+                            <span class="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">💬</span>
+                            <span>WhatsApp Destek</span>
                         </a>
-                        <a href="mailto:efeshn.business@gmail.com" class="flex items-center space-x-3 text-gray-400 hover:text-ocean transition-colors group">
-                            <span class="text-3xl group-hover:scale-110 transition-transform">📧</span>
-                            <span class="text-lg">E-posta</span>
+                        <a href="mailto:efeshn.business@gmail.com" class="flex items-center space-x-2 sm:space-x-3 text-gray-400 hover:text-ocean transition-colors group text-xs sm:text-sm lg:text-base">
+                            <span class="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">📧</span>
+                            <span>E-posta</span>
                         </a>
                     </div>
                 </div>
                 
                 <div>
-                    <h4 class="text-xl font-bold mb-6">Çalışma Saatleri</h4>
-                    <div class="space-y-3 text-gray-400 text-lg">
+                    <h4 class="text-base sm:text-lg lg:text-xl font-bold mb-4 sm:mb-6">Çalışma Saatleri</h4>
+                    <div class="space-y-2 sm:space-y-3 text-gray-400 text-xs sm:text-sm lg:text-base">
                         <p>Pazartesi - Cuma: 09:00 - 18:00</p>
                         <p>Cumartesi: 10:00 - 14:00</p>
                         <p>Pazar: Kapalı</p>
@@ -702,14 +610,14 @@ class="text-white min-h-screen">
                 </div>
             </div>
             
-            <div class="pt-10 border-t border-white/10 text-center">
-                <p class="text-gray-400 text-lg">© 2025 ReviewShield. Tüm hakları saklıdır. Profesyonel İtibar Danışmanlığı.</p>
+            <div class="pt-6 sm:pt-8 lg:pt-10 border-t border-white/10 text-center">
+                <p class="text-gray-400 text-xs sm:text-sm lg:text-base">© 2025 ReviewShield. Tüm hakları saklıdır. Profesyonel İtibar Danışmanlığı.</p>
             </div>
         </div>
     </footer>
 
     <script>
-        const BACKEND_API = 'https://beststar-u2lr.onrender.com'; // <-- Burayı kendi Render URL'inle değiştir
+        const BACKEND_API = 'https://beststar-u2lr.onrender.com';
         let allReviews = { '1_star': [], '2_star': [] };
 
         function toggleMenu() {
@@ -722,7 +630,6 @@ class="text-white min-h-screen">
             setTimeout(() => document.getElementById('businessInput').focus(), 700);
         }
 
-        // Counter Animation with Intersection Observer
         const counters = document.querySelectorAll('.counter');
         const counterObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -810,52 +717,51 @@ class="text-white min-h-screen">
 
             const html = `
                 <div class="max-w-6xl mx-auto">
-                    <div class="glass rounded-3xl p-12 lg:p-16">
-                        <div class="text-center mb-12">
-                            <div class="inline-flex items-center space-x-3 px-8 py-4 bg-mint/20 rounded-full mb-8">
-                                <span class="text-4xl">✅</span>
-                                <span class="text-2xl font-bold text-mint">Analiz Tamamlandı (Demo)</span>
+                    <div class="glass rounded-3xl p-6 sm:p-8 lg:p-16">
+                        <div class="text-center mb-8 sm:mb-12">
+                            <div class="inline-flex items-center space-x-2 sm:space-x-3 px-4 sm:px-8 py-3 sm:py-4 bg-mint/20 rounded-full mb-6 sm:mb-8 text-sm sm:text-base">
+                                <span class="text-3xl sm:text-4xl">✅</span>
+                                <span class="font-bold text-mint">Analiz Tamamlandı (Demo)</span>
                             </div>
-                            <button onclick="location.reload()" class="px-10 py-4 glass rounded-2xl hover:bg-white/10 transition-all text-lg font-semibold">
+                            <button onclick="location.reload()" class="px-6 sm:px-10 py-3 sm:py-4 glass rounded-2xl hover:bg-white/10 transition-all text-xs sm:text-lg font-semibold">
                                 🔄 Yeni Analiz Yap
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-                            <div class="glass rounded-2xl p-8 text-center card-3d">
-                                <div class="text-6xl font-black text-red-400 mb-4">${totalNegative}</div>
-                                <div class="text-gray-400 text-lg">Olumsuz Yorum</div>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-16">
+                            <div class="glass rounded-2xl p-4 sm:p-8 text-center card-3d">
+                                <div class="text-4xl sm:text-6xl font-black text-red-400 mb-2 sm:mb-4">${totalNegative}</div>
+                                <div class="text-gray-400 text-xs sm:text-lg">Olumsuz Yorum</div>
                             </div>
-                            <div class="glass rounded-2xl p-8 text-center card-3d">
-                                <div class="text-6xl font-black text-red-500 mb-4">${oneStar}</div>
-                                <div class="text-gray-400 text-lg">1 Yıldız</div>
+                            <div class="glass rounded-2xl p-4 sm:p-8 text-center card-3d">
+                                <div class="text-4xl sm:text-6xl font-black text-red-500 mb-2 sm:mb-4">${oneStar}</div>
+                                <div class="text-gray-400 text-xs sm:text-lg">1 Yıldız</div>
                             </div>
-                            <div class="glass rounded-2xl p-8 text-center card-3d">
-                                <div class="text-6xl font-black text-orange-500 mb-4">${twoStar}</div>
-                                <div class="text-gray-400 text-lg">2 Yıldız</div>
+                            <div class="glass rounded-2xl p-4 sm:p-8 text-center card-3d">
+                                <div class="text-4xl sm:text-6xl font-black text-orange-500 mb-2 sm:mb-4">${twoStar}</div>
+                                <div class="text-gray-400 text-xs sm:text-lg">2 Yıldız</div>
                             </div>
-                            <div class="glass rounded-2xl p-8 text-center card-3d">
-                                <div class="text-6xl font-black text-red-400 mb-4">€${estimatedLoss.toLocaleString('tr-TR')}</div>
-                                <div class="text-gray-400 text-lg">Tahmini Kayıp</div>
+                            <div class="glass rounded-2xl p-4 sm:p-8 text-center card-3d">
+                                <div class="text-3xl sm:text-5xl font-black text-red-400 mb-2 sm:mb-4">€${estimatedLoss.toLocaleString('tr-TR')}</div>
+                                <div class="text-gray-400 text-xs sm:text-lg">Tahmini Kayıp</div>
                             </div>
                         </div>
 
                         <div class="text-center max-w-3xl mx-auto">
-                            <h3 class="text-4xl lg:text-5xl font-bold mb-6">
+                            <h3 class="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
                                 🚨 <span class="text-red-400">${totalNegative} Olumsuz Yorum</span> Tespit Edildi
                             </h3>
-                            <p class="text-xl lg:text-2xl text-gray-300 mb-10 leading-relaxed">
+                            <p class="text-base sm:text-xl lg:text-2xl text-gray-300 mb-6 sm:mb-10 leading-relaxed">
                                 Bu yorumlar işletmenizin gelirini ciddi şekilde etkileyebilir. Profesyonel hukuki destek ile bu yorumları kaldırabilir, itibarınızı koruyabilirsiniz.
                             </p>
-                            <div class="glass rounded-2xl p-8 mb-10">
-                                <h4 class="text-2xl font-bold mb-4 text-coral">💡 Önemli Bilgi</h4>
-                                <p class="text-lg text-gray-300 leading-relaxed">
-                                    Her olumsuz yorum ortalama <strong class="text-ocean">1.200€</strong> gelir kaybına neden olur. 
-                                    Hemen harekete geçerek işletmenizi koruyun!
+                            <div class="glass rounded-2xl p-6 sm:p-8 mb-8 sm:mb-10">
+                                <h4 class="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-coral">💡 Önemli Bilgi</h4>
+                                <p class="text-base sm:text-lg text-gray-300 leading-relaxed">
+                                    Her olumsuz yorum ortalama <strong class="text-ocean">1.200€</strong> gelir kaybına neden olur. Hemen harekete geçerek işletmenizi koruyun!
                                 </p>
                             </div>
-                            <a href="https://wa.me/4917627729811?text=Merhaba! İşletmem için ${totalNegative} olumsuz yorum tespit edildi. Detaylı teklif ve danışmanlık almak istiyorum." 
-                               class="inline-block px-12 py-7 bg-gradient-to-r from-mint to-emerald-600 rounded-2xl font-bold text-2xl hover:shadow-2xl hover:shadow-mint/50 transition-all hover:scale-105">
+                            <a href="https://wa.me/4917627729811?text=Merhaba! ${totalNegative} olumsuz yorum tespit edildi. Detaylı teklif ve danışmanlık almak istiyorum." 
+                               class="inline-block px-8 sm:px-12 py-5 sm:py-7 bg-gradient-to-r from-mint to-emerald-600 rounded-2xl font-bold text-sm sm:text-lg lg:text-2xl hover:shadow-2xl hover:shadow-mint/50 transition-all hover:scale-105">
                                 💬 WhatsApp'tan Profesyonel Teklif Alın
                             </a>
                         </div>
@@ -873,157 +779,58 @@ class="text-white min-h-screen">
 
             const html = `
                 <div class="max-w-6xl mx-auto">
-                    <div class="glass rounded-3xl p-12 lg:p-16">
-                        <div class="text-center mb-12">
-                            <div class="inline-flex items-center space-x-3 px-8 py-4 bg-mint/20 rounded-full mb-8">
-                                <span class="text-4xl">✅</span>
-                                <span class="text-2xl font-bold text-mint">Analiz Başarıyla Tamamlandı</span>
+                    <div class="glass rounded-3xl p-6 sm:p-8 lg:p-16">
+                        <div class="text-center mb-8 sm:mb-12">
+                            <div class="inline-flex items-center space-x-2 sm:space-x-3 px-4 sm:px-8 py-3 sm:py-4 bg-mint/20 rounded-full mb-6 sm:mb-8 text-sm sm:text-base">
+                                <span class="text-3xl sm:text-4xl">✅</span>
+                                <span class="font-bold text-mint">Analiz Başarıyla Tamamlandı</span>
                             </div>
-                            <h3 class="text-4xl font-bold mb-4">${data.name || 'İşletme Bulunamadı'}</h3>
-                            <p class="text-xl text-gray-400 mb-8">📍 ${data.address || 'Adres bilgisi mevcut değil'}</p>
-                            <button onclick="location.reload()" class="px-10 py-4 glass rounded-2xl hover:bg-white/10 transition-all text-lg font-semibold">
+                            <h3 class="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4">${data.name || 'İşletme Bulunamadı'}</h3>
+                            <p class="text-base sm:text-lg text-gray-400 mb-6 sm:mb-8">📍 ${data.address || 'Adres bilgisi mevcut değil'}</p>
+                            <button onclick="location.reload()" class="px-6 sm:px-10 py-3 sm:py-4 glass rounded-2xl hover:bg-white/10 transition-all text-xs sm:text-lg font-semibold">
                                 🔄 Yeni Analiz Yap
                             </button>
                         </div>
 
-                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-                            <div class="glass rounded-2xl p-8 text-center card-3d">
-                                <div class="text-6xl font-black text-red-400 mb-4">${totalNegative}</div>
-                                <div class="text-gray-400 text-lg">Toplam Olumsuz</div>
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-16">
+                            <div class="glass rounded-2xl p-4 sm:p-8 text-center card-3d">
+                                <div class="text-4xl sm:text-6xl font-black text-red-400 mb-2 sm:mb-4">${totalNegative}</div>
+                                <div class="text-gray-400 text-xs sm:text-lg">Toplam Olumsuz</div>
                             </div>
-                            <div class="glass rounded-2xl p-8 text-center card-3d">
-                                <div class="text-6xl font-black text-red-500 mb-4">${allReviews['1_star'].length}</div>
-                                <div class="text-gray-400 text-lg">1 Yıldız</div>
+                            <div class="glass rounded-2xl p-4 sm:p-8 text-center card-3d">
+                                <div class="text-4xl sm:text-6xl font-black text-red-500 mb-2 sm:mb-4">${allReviews['1_star'].length}</div>
+                                <div class="text-gray-400 text-xs sm:text-lg">1 Yıldız</div>
                             </div>
-                            <div class="glass rounded-2xl p-8 text-center card-3d">
-                                <div class="text-6xl font-black text-orange-500 mb-4">${allReviews['2_star'].length}</div>
-                                <div class="text-gray-400 text-lg">2 Yıldız</div>
+                            <div class="glass rounded-2xl p-4 sm:p-8 text-center card-3d">
+                                <div class="text-4xl sm:text-6xl font-black text-orange-500 mb-2 sm:mb-4">${allReviews['2_star'].length}</div>
+                                <div class="text-gray-400 text-xs sm:text-lg">2 Yıldız</div>
                             </div>
-                            <div class="glass rounded-2xl p-8 text-center card-3d">
-                                <div class="text-6xl font-black text-red-400 mb-4">€${estimatedLoss.toLocaleString('tr-TR')}</div>
-                                <div class="text-gray-400 text-lg">Tahmini Risk</div>
+                            <div class="glass rounded-2xl p-4 sm:p-8 text-center card-3d">
+                                <div class="text-3xl sm:text-5xl font-black text-red-400 mb-2 sm:mb-4">€${estimatedLoss.toLocaleString('tr-TR')}</div>
+                                <div class="text-gray-400 text-xs sm:text-lg">Tahmini Risk</div>
                             </div>
                         </div>
 
-                        <div class="text-center max-w-3xl mx-auto mb-16">
-                            <h3 class="text-4xl lg:text-5xl font-bold mb-6">
+                        <div class="text-center max-w-3xl mx-auto">
+                            <h3 class="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6">
                                 🚨 <span class="text-red-400">${totalNegative} Olumsuz Yorum</span> Bulundu
                             </h3>
-                            <p class="text-xl lg:text-2xl text-gray-300 mb-10 leading-relaxed">
+                            <p class="text-base sm:text-xl lg:text-2xl text-gray-300 mb-6 sm:mb-10 leading-relaxed">
                                 Profesyonel hukuki destek ile bu yorumları değerlendirip, Google politikalarına aykırı olanları kaldırabilirsiniz.
                             </p>
                             <a href="https://wa.me/4917627729811?text=Merhaba! ${encodeURIComponent(data.name || 'işletmem')} için ${totalNegative} olumsuz yorum tespit edildi. Çözüm önerisi almak istiyorum." 
-                               class="inline-block px-12 py-7 bg-gradient-to-r from-mint to-emerald-600 rounded-2xl font-bold text-2xl hover:shadow-2xl hover:shadow-mint/50 transition-all hover:scale-105">
+                               class="inline-block px-8 sm:px-12 py-5 sm:py-7 bg-gradient-to-r from-mint to-emerald-600 rounded-2xl font-bold text-sm sm:text-lg lg:text-2xl hover:shadow-2xl hover:shadow-mint/50 transition-all hover:scale-105">
                                 💬 WhatsApp'tan Teklif Alın
                             </a>
-                        </div>
-
-                        <div class="mt-20">
-                            <h3 class="text-4xl font-bold text-center mb-12">Tespit Edilen Yorumlar</h3>
-                            
-                            <div class="flex flex-wrap justify-center gap-4 mb-12">
-                                <button class="filter-btn active px-10 py-4 glass rounded-2xl font-bold text-lg transition-all hover:scale-105" data-filter="all">
-                                    Tümü (${totalNegative})
-                                </button>
-                                <button class="filter-btn px-10 py-4 glass rounded-2xl font-bold text-lg transition-all hover:scale-105" data-filter="1_star">
-                                    1 Yıldız (${allReviews['1_star'].length})
-                                </button>
-                                <button class="filter-btn px-10 py-4 glass rounded-2xl font-bold text-lg transition-all hover:scale-105" data-filter="2_star">
-                                    2 Yıldız (${allReviews['2_star'].length})
-                                </button>
-                            </div>
-
-                            <div id="reviewsDisplay" class="space-y-8">
-                                ${generateReviewsHTML('all')}
-                            </div>
                         </div>
                     </div>
                 </div>
             `;
 
             document.getElementById('resultsArea').innerHTML = html;
-            
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    document.getElementById('reviewsDisplay').innerHTML = generateReviewsHTML(btn.dataset.filter);
-                });
-            });
-
             document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        function generateReviewsHTML(filter) {
-            let reviews = [];
-            if (filter === 'all') {
-                reviews = [
-                    ...allReviews['1_star'].map(r => ({ ...r, stars: 1 })),
-                    ...allReviews['2_star'].map(r => ({ ...r, stars: 2 }))
-                ];
-            } else if (filter === '1_star') {
-                reviews = allReviews['1_star'].map(r => ({ ...r, stars: 1 }));
-            } else if (filter === '2_star') {
-                reviews = allReviews['2_star'].map(r => ({ ...r, stars: 2 }));
-            }
-
-            if (reviews.length === 0) {
-                return `
-                    <div class="text-center py-24">
-                        <div class="text-7xl mb-8 opacity-20">🔍</div>
-                        <p class="text-3xl text-gray-400">Bu kategoride yorum bulunamadı</p>
-                    </div>
-                `;
-            }
-
-            return reviews.map((review, index) => {
-                const hasText = review.text && review.text.trim().length > 0;
-                const starDisplay = review.stars === 1 ? 'text-red-500' : 'text-orange-500';
-                const badgeStyle = review.stars === 1 
-                    ? 'bg-red-500/20 text-red-300 border-2 border-red-500/40' 
-                    : 'bg-orange-500/20 text-orange-300 border-2 border-orange-500/40';
-                
-                return `
-                    <div class="review-enter glass rounded-3xl p-10 hover:border-ocean/30 border-2 border-white/10 transition-all" style="animation-delay: ${index * 0.08}s">
-                        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6 mb-8">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-4 mb-3">
-                                    <div class="w-14 h-14 bg-gradient-to-br from-ocean to-mint rounded-full flex items-center justify-center text-2xl font-bold">
-                                        ${(review.author || 'A')[0].toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-2xl">${review.author || 'Anonim Kullanıcı'}</div>
-                                        <div class="${starDisplay} text-2xl mt-1">
-                                            ${'⭐'.repeat(review.stars)}${'☆'.repeat(5 - review.stars)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="flex flex-wrap gap-3">
-                                <span class="${badgeStyle} px-6 py-3 rounded-full text-base font-bold">
-                                    ${review.stars === 1 ? '🔴 Çok Olumsuz' : '🟠 Olumsuz'}
-                                </span>
-                                <span class="glass px-6 py-3 rounded-full text-base font-bold border-2 border-white/20">
-                                    ${hasText ? '💬 Yorumlu' : '⭐ Sadece Puan'}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="text-xl leading-relaxed text-gray-300">
-                            ${hasText 
-                                ? `<div class="bg-white/5 rounded-2xl p-8 border-l-4 border-${review.stars === 1 ? 'red' : 'orange'}-500">
-                                    <p class="mb-4"><span class="text-3xl opacity-30">"</span></p>
-                                    <p>${review.text}</p>
-                                    <p class="text-right"><span class="text-3xl opacity-30">"</span></p>
-                                   </div>` 
-                                : '<div class="italic text-gray-500 bg-white/5 rounded-2xl p-8 text-center border-2 border-dashed border-white/10">Kullanıcı yalnızca yıldız puanı vermiş, yazılı yorum bırakmamış.</div>'
-                            }
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -1034,18 +841,5 @@ class="text-white min-h-screen">
             });
         });
     </script>
-    <div class="gtranslate_wrapper"></div>
 </body>
-
 </html>
-
-
-
-
-
-
-
-
-
-
-
